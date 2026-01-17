@@ -1,0 +1,406 @@
+"use client";
+
+import { useState, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import type { PortfolioItem } from "@/app/page";
+
+interface PortfolioInputProps {
+  portfolio: PortfolioItem[];
+  setPortfolio: React.Dispatch<React.SetStateAction<PortfolioItem[]>>;
+  onAnalyze: () => void;
+  isAnalyzing: boolean;
+}
+
+const DEMO_PORTFOLIOS = {
+  tech: [
+    { ticker: "NVDA", shares: 50 },
+    { ticker: "MSFT", shares: 30 },
+    { ticker: "GOOGL", shares: 20 },
+    { ticker: "TSLA", shares: 25 },
+    { ticker: "META", shares: 15 },
+  ],
+  crypto: [
+    { ticker: "COIN", shares: 40 },
+    { ticker: "MSTR", shares: 20 },
+    { ticker: "SQ", shares: 35 },
+    { ticker: "PYPL", shares: 30 },
+  ],
+  diversified: [
+    { ticker: "AAPL", shares: 50 },
+    { ticker: "JPM", shares: 25 },
+    { ticker: "XOM", shares: 30 },
+    { ticker: "JNJ", shares: 20 },
+    { ticker: "NVDA", shares: 15 },
+  ],
+};
+
+// Common column names for ticker/symbol
+const TICKER_COLUMNS = ["symbol", "ticker", "stock", "name", "security", "holding", "asset"];
+// Common column names for quantity/shares
+const SHARES_COLUMNS = ["shares", "quantity", "qty", "units", "amount", "position", "holdings"];
+
+function parsePortfolioData(text: string): PortfolioItem[] {
+  const lines = text.trim().split(/\r?\n/);
+  if (lines.length === 0) return [];
+
+  const items: PortfolioItem[] = [];
+  
+  // Detect delimiter (comma, tab, or multiple spaces)
+  const firstLine = lines[0];
+  let delimiter = ",";
+  if (firstLine.includes("\t")) {
+    delimiter = "\t";
+  } else if (!firstLine.includes(",") && firstLine.includes("  ")) {
+    delimiter = /\s{2,}/;
+  }
+
+  // Split all lines
+  const rows = lines.map(line => {
+    if (typeof delimiter === "string") {
+      return line.split(delimiter).map(cell => cell.trim().replace(/^["']|["']$/g, ""));
+    }
+    return line.split(delimiter).map(cell => cell.trim().replace(/^["']|["']$/g, ""));
+  });
+
+  // Try to detect header row and column indices
+  let tickerCol = -1;
+  let sharesCol = -1;
+  let startRow = 0;
+
+  // Check if first row is a header
+  const headerRow = rows[0].map(h => h.toLowerCase());
+  
+  for (let i = 0; i < headerRow.length; i++) {
+    const header = headerRow[i];
+    if (tickerCol === -1 && TICKER_COLUMNS.some(t => header.includes(t))) {
+      tickerCol = i;
+    }
+    if (sharesCol === -1 && SHARES_COLUMNS.some(s => header.includes(s))) {
+      sharesCol = i;
+    }
+  }
+
+  // If we found headers, skip the header row
+  if (tickerCol !== -1 || sharesCol !== -1) {
+    startRow = 1;
+  }
+
+  // If no headers detected, assume first column is ticker, second is shares
+  if (tickerCol === -1) tickerCol = 0;
+  if (sharesCol === -1) sharesCol = 1;
+
+  // Parse data rows
+  for (let i = startRow; i < rows.length; i++) {
+    const row = rows[i];
+    if (row.length < 2) continue;
+
+    const ticker = row[tickerCol]?.toUpperCase().replace(/[^A-Z]/g, "");
+    const sharesStr = row[sharesCol]?.replace(/[,$]/g, "");
+    const shares = parseFloat(sharesStr);
+
+    // Validate: ticker should be 1-5 uppercase letters, shares should be positive
+    if (ticker && ticker.length >= 1 && ticker.length <= 5 && !isNaN(shares) && shares > 0) {
+      // Round shares to whole number
+      items.push({ ticker, shares: Math.round(shares) });
+    }
+  }
+
+  // Deduplicate by ticker (sum shares)
+  const deduped = new Map<string, number>();
+  for (const item of items) {
+    deduped.set(item.ticker, (deduped.get(item.ticker) || 0) + item.shares);
+  }
+
+  return Array.from(deduped.entries()).map(([ticker, shares]) => ({ ticker, shares }));
+}
+
+export function PortfolioInput({
+  portfolio,
+  setPortfolio,
+  onAnalyze,
+  isAnalyzing,
+}: PortfolioInputProps) {
+  const [ticker, setTicker] = useState("");
+  const [shares, setShares] = useState("");
+  const [importText, setImportText] = useState("");
+  const [showImport, setShowImport] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAdd = () => {
+    if (!ticker.trim() || !shares.trim()) return;
+
+    const tickerUpper = ticker.trim().toUpperCase();
+    const sharesNum = parseInt(shares, 10);
+
+    if (isNaN(sharesNum) || sharesNum <= 0) return;
+
+    const existingIndex = portfolio.findIndex((p) => p.ticker === tickerUpper);
+    if (existingIndex >= 0) {
+      setPortfolio((prev) =>
+        prev.map((p, i) =>
+          i === existingIndex ? { ...p, shares: p.shares + sharesNum } : p
+        )
+      );
+    } else {
+      setPortfolio((prev) => [...prev, { ticker: tickerUpper, shares: sharesNum }]);
+    }
+
+    setTicker("");
+    setShares("");
+  };
+
+  const handleRemove = (tickerToRemove: string) => {
+    setPortfolio((prev) => prev.filter((p) => p.ticker !== tickerToRemove));
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleAdd();
+    }
+  };
+
+  const loadDemo = (type: keyof typeof DEMO_PORTFOLIOS) => {
+    setPortfolio(DEMO_PORTFOLIOS[type]);
+  };
+
+  const handleImport = () => {
+    setImportError(null);
+    const items = parsePortfolioData(importText);
+    
+    if (items.length === 0) {
+      setImportError("Could not parse any valid stocks. Make sure format is: TICKER, SHARES");
+      return;
+    }
+
+    setPortfolio(items);
+    setImportText("");
+    setShowImport(false);
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      if (text) {
+        setImportError(null);
+        const items = parsePortfolioData(text);
+        
+        if (items.length === 0) {
+          setImportError("Could not parse any valid stocks from file.");
+          return;
+        }
+
+        setPortfolio(items);
+        setShowImport(false);
+      }
+    };
+    reader.readAsText(file);
+    
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const clearPortfolio = () => {
+    setPortfolio([]);
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Quick Load Buttons */}
+      {portfolio.length === 0 && (
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">Quick load a demo portfolio:</p>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => loadDemo("tech")}
+              className="text-xs"
+            >
+              Tech Heavy
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => loadDemo("crypto")}
+              className="text-xs"
+            >
+              Crypto Exposure
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => loadDemo("diversified")}
+              className="text-xs"
+            >
+              Diversified
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowImport(!showImport)}
+              className="text-xs"
+            >
+              Import Portfolio
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Import Section */}
+      {showImport && (
+        <div className="space-y-4 p-4 bg-secondary/50 rounded-lg border border-border">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium">Import Portfolio</p>
+            <button
+              onClick={() => {
+                setShowImport(false);
+                setImportText("");
+                setImportError(null);
+              }}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              ×
+            </button>
+          </div>
+          
+          {/* File Upload */}
+          <div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv,.txt,.tsv"
+              onChange={handleFileUpload}
+              className="hidden"
+              id="portfolio-file"
+            />
+            <label
+              htmlFor="portfolio-file"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-background border border-border rounded-md cursor-pointer hover:bg-secondary transition-colors text-sm"
+            >
+              <span>Upload CSV</span>
+              <span className="text-muted-foreground text-xs">(from Fidelity, Schwab, Robinhood, etc.)</span>
+            </label>
+          </div>
+
+          {/* Paste Area */}
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground">
+              Or paste your holdings (supports most formats):
+            </p>
+            <textarea
+              value={importText}
+              onChange={(e) => setImportText(e.target.value)}
+              placeholder={`Symbol, Shares
+NVDA, 50
+MSFT, 30
+GOOGL, 20
+
+Or paste directly from your broker...`}
+              className="w-full h-32 px-3 py-2 bg-background border border-border rounded-md font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-accent"
+            />
+          </div>
+
+          {importError && (
+            <p className="text-sm text-destructive">{importError}</p>
+          )}
+
+          <Button size="sm" onClick={handleImport} disabled={!importText.trim()}>
+            Import
+          </Button>
+        </div>
+      )}
+
+      {/* Portfolio List */}
+      {portfolio.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">
+              {portfolio.length} stock{portfolio.length !== 1 ? "s" : ""} • {portfolio.reduce((sum, p) => sum + p.shares, 0).toLocaleString()} total shares
+            </span>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowImport(true)}
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Import more
+              </button>
+              <button
+                onClick={clearPortfolio}
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Clear all
+              </button>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            {portfolio.map((item) => (
+              <div
+                key={item.ticker}
+                className="flex items-center gap-3 px-4 py-2 bg-secondary rounded-lg border border-border"
+              >
+                <span className="font-mono font-medium">{item.ticker}</span>
+                <span className="text-muted-foreground">×</span>
+                <span className="text-muted-foreground">{item.shares.toLocaleString()}</span>
+                <button
+                  onClick={() => handleRemove(item.ticker)}
+                  className="ml-2 text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label={`Remove ${item.ticker}`}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Add Stock Form */}
+      <div className="flex gap-3">
+        <Input
+          type="text"
+          placeholder="Ticker (e.g. NVDA)"
+          value={ticker}
+          onChange={(e) => setTicker(e.target.value)}
+          onKeyDown={handleKeyDown}
+          className="w-40 font-mono uppercase"
+        />
+        <Input
+          type="number"
+          placeholder="Shares"
+          value={shares}
+          onChange={(e) => setShares(e.target.value)}
+          onKeyDown={handleKeyDown}
+          className="w-28"
+          min="1"
+        />
+        <Button
+          variant="secondary"
+          onClick={handleAdd}
+          disabled={!ticker.trim() || !shares.trim()}
+        >
+          Add
+        </Button>
+      </div>
+
+      {/* Analyze Button */}
+      <div className="pt-4">
+        <Button
+          onClick={onAnalyze}
+          disabled={portfolio.length === 0 || isAnalyzing}
+          className="px-8 bg-accent text-accent-foreground hover:bg-accent/90"
+        >
+          {isAnalyzing ? "Analyzing..." : "Analyze Portfolio"}
+        </Button>
+      </div>
+    </div>
+  );
+}
