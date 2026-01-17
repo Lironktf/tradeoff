@@ -1,8 +1,8 @@
 "use client";
 
 interface TabNavProps {
-  activeTab: "hedge" | "analytics";
-  onTabChange: (tab: "hedge" | "analytics") => void;
+  activeTab: "hedge" | "news";
+  onTabChange: (tab: "hedge" | "news") => void;
 }
 
 export function TabNav({ activeTab, onTabChange }: TabNavProps) {
@@ -19,14 +19,14 @@ export function TabNav({ activeTab, onTabChange }: TabNavProps) {
         Hedge Advisor
       </button>
       <button
-        onClick={() => onTabChange("analytics")}
+        onClick={() => onTabChange("news")}
         className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-          activeTab === "analytics"
+          activeTab === "news"
             ? "bg-background text-foreground shadow-sm"
             : "text-muted-foreground hover:text-foreground"
         }`}
       >
-        Analytics
+        News
       </button>
     </div>
   );

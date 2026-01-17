@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { TabNav } from "@/components/TabNav";
 import { HedgeView } from "@/components/hedge/HedgeView";
-import { AnalyticsView } from "@/components/analytics/AnalyticsView";
+import { NewsView } from "@/components/news/NewsView";
+import type { NewsArticle } from "@/app/api/news/route";
 
 // Shared types - exported for use in other components
 export interface PortfolioItem {
@@ -43,9 +44,24 @@ export interface AnalysisResult {
 }
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<"hedge" | "analytics">("hedge");
+  const [activeTab, setActiveTab] = useState<"hedge" | "news">("hedge");
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
   const [stockInfo, setStockInfo] = useState<Record<string, StockInfo>>({});
+  const [selectedBet, setSelectedBet] = useState<HedgeRecommendation | null>(null);
+  const [cachedArticles, setCachedArticles] = useState<NewsArticle[]>([]);
+
+  // When a bet is selected, switch to news tab
+  const handleBetSelect = (bet: HedgeRecommendation | null) => {
+    setSelectedBet(bet);
+    if (bet) {
+      setActiveTab("news");
+    }
+  };
+
+  // Handle articles update from NewsView
+  const handleArticlesUpdate = (articles: NewsArticle[]) => {
+    setCachedArticles(articles);
+  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -74,11 +90,16 @@ export default function Home() {
             setPortfolio={setPortfolio}
             stockInfo={stockInfo}
             setStockInfo={setStockInfo}
+            onBetSelect={handleBetSelect}
           />
         ) : (
-          <AnalyticsView
+          <NewsView
             portfolio={portfolio}
             stockInfo={stockInfo}
+            selectedBet={selectedBet}
+            onBetSelect={handleBetSelect}
+            cachedArticles={cachedArticles}
+            onArticlesUpdate={handleArticlesUpdate}
           />
         )}
       </main>

@@ -13,13 +13,15 @@ interface HedgeViewProps {
   setPortfolio: React.Dispatch<React.SetStateAction<PortfolioItem[]>>;
   stockInfo: Record<string, StockInfo>;
   setStockInfo: React.Dispatch<React.SetStateAction<Record<string, StockInfo>>>;
+  onBetSelect?: (bet: import("@/app/page").HedgeRecommendation | null) => void;
 }
 
 export function HedgeView({ 
   portfolio, 
   setPortfolio, 
   stockInfo, 
-  setStockInfo 
+  setStockInfo,
+  onBetSelect
 }: HedgeViewProps) {
   const [isLoadingStocks, setIsLoadingStocks] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
@@ -165,6 +167,7 @@ export function HedgeView({
               recommendations={analysisResult.recommendations}
               stocksWithoutHedges={analysisResult.stocksWithoutHedges}
               stockInfo={stockInfo}
+              onBetSelect={onBetSelect}
             />
           </section>
 

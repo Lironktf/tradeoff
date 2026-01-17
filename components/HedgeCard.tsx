@@ -1,14 +1,17 @@
 "use client";
 
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Newspaper } from "lucide-react";
 import type { HedgeRecommendation, StockInfo } from "@/app/page";
 
 interface HedgeCardProps {
   recommendation: HedgeRecommendation;
   stockInfo?: Record<string, StockInfo>;
+  onBetSelect?: (bet: HedgeRecommendation | null) => void;
 }
 
-export function HedgeCard({ recommendation, stockInfo = {} }: HedgeCardProps) {
+export function HedgeCard({ recommendation, stockInfo = {}, onBetSelect }: HedgeCardProps) {
   const {
     market,
     marketUrl,
@@ -22,6 +25,13 @@ export function HedgeCard({ recommendation, stockInfo = {} }: HedgeCardProps) {
   } = recommendation;
 
   const stockCount = affectedStocks.length;
+
+  const handleNewsClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onBetSelect) {
+      onBetSelect(recommendation);
+    }
+  };
 
   return (
     <Card className="bg-card border-border hover:border-accent/50 transition-colors">
@@ -51,17 +61,17 @@ export function HedgeCard({ recommendation, stockInfo = {} }: HedgeCardProps) {
         {/* Market Title & Position */}
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
-            <a
-              href={marketUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-foreground hover:text-accent transition-colors font-medium group inline-flex items-start gap-1"
-            >
+            <div className="text-foreground font-medium group inline-flex items-start gap-1">
               <span>&ldquo;{market}&rdquo;</span>
-              <span className="text-muted-foreground group-hover:text-accent transition-colors shrink-0">
+              <a
+                href={marketUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-accent transition-colors shrink-0"
+              >
                 ↗
-              </span>
-            </a>
+              </a>
+            </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <span className="text-2xl font-semibold font-mono">
@@ -103,17 +113,30 @@ export function HedgeCard({ recommendation, stockInfo = {} }: HedgeCardProps) {
         </p>
 
         {/* Meta Info */}
-        <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm pt-1">
-          <div>
-            <span className="text-muted-foreground">Risk hedged: </span>
-            <span className="text-foreground">{hedgesAgainst}</span>
+        <div className="flex flex-wrap items-center justify-between gap-4 pt-1">
+          <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+            <div>
+              <span className="text-muted-foreground">Risk hedged: </span>
+              <span className="text-foreground">{hedgesAgainst}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Suggested bet: </span>
+              <span className="text-foreground font-mono">
+                ${suggestedAllocation.toLocaleString()}
+              </span>
+            </div>
           </div>
-          <div>
-            <span className="text-muted-foreground">Suggested bet: </span>
-            <span className="text-foreground font-mono">
-              ${suggestedAllocation.toLocaleString()}
-            </span>
-          </div>
+          {onBetSelect && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleNewsClick}
+              className="flex items-center gap-2"
+            >
+              <Newspaper className="w-4 h-4" />
+              View News
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>
