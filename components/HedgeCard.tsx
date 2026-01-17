@@ -1,14 +1,17 @@
 "use client";
 
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Newspaper } from "lucide-react";
 import type { HedgeRecommendation, StockInfo } from "@/app/page";
 
 interface HedgeCardProps {
   recommendation: HedgeRecommendation;
   stockInfo?: Record<string, StockInfo>;
+  onBetSelect?: (bet: HedgeRecommendation | null) => void;
 }
 
-export function HedgeCard({ recommendation, stockInfo = {} }: HedgeCardProps) {
+export function HedgeCard({ recommendation, stockInfo = {}, onBetSelect }: HedgeCardProps) {
   const {
     market,
     marketUrl,
@@ -22,6 +25,13 @@ export function HedgeCard({ recommendation, stockInfo = {} }: HedgeCardProps) {
 
   const stockCount = affectedStocks.length;
   const currentOdds = Math.round(probability * 100);
+
+  const handleNewsClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onBetSelect) {
+      onBetSelect(recommendation);
+    }
+  };
 
   return (
     <Card className="bg-card border-border">

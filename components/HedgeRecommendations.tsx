@@ -8,6 +8,7 @@ interface HedgeRecommendationsProps {
   recommendations: HedgeRecommendation[];
   stocksWithoutHedges?: string[];
   stockInfo?: Record<string, StockInfo>;
+  onBetSelect?: (bet: HedgeRecommendation | null) => void;
 }
 
 export function HedgeRecommendations({
@@ -15,6 +16,7 @@ export function HedgeRecommendations({
   recommendations,
   stocksWithoutHedges = [],
   stockInfo = {},
+  onBetSelect,
 }: HedgeRecommendationsProps) {
   // Recommendations should already be sorted by affected stocks count
   // Just ensure they are
@@ -43,6 +45,7 @@ export function HedgeRecommendations({
               key={`${rec.market}-${idx}`} 
               recommendation={rec}
               stockInfo={stockInfo}
+              onBetSelect={onBetSelect}
             />
           ))}
         </div>

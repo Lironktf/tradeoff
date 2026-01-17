@@ -127,6 +127,7 @@ export default function Home() {
             setPortfolio={setPortfolio}
             stockInfo={stockInfo}
             setStockInfo={setStockInfo}
+            onBetSelect={handleBetSelect}
           />
         )}
         {activeTab === "hedges" && (
@@ -142,6 +143,10 @@ export default function Home() {
           <NewsView
             portfolio={portfolio}
             stockInfo={stockInfo}
+            selectedBet={selectedBet}
+            onBetSelect={handleBetSelect}
+            cachedArticles={cachedArticles}
+            onArticlesUpdate={handleArticlesUpdate}
           />
         )}
         {activeTab === "greeks" && (
