@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { TabNav, type TabType } from "@/components/TabNav";
 import { PortfolioView } from "@/components/portfolio/PortfolioView";
 import { HedgeView } from "@/components/hedge/HedgeView";
+import { RiskView } from "@/components/risk/RiskView";
 import { NewsView } from "@/components/news/NewsView";
 import { GreeksView } from "@/components/greeks/GreeksView";
 import type { NewsArticle } from "@/app/api/news/route";
@@ -50,8 +51,12 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<TabType>("portfolio");
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
   const [stockInfo, setStockInfo] = useState<Record<string, StockInfo>>({});
-  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
-  const [selectedBet, setSelectedBet] = useState<HedgeRecommendation | null>(null);
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(
+    null,
+  );
+  const [selectedBet, setSelectedBet] = useState<HedgeRecommendation | null>(
+    null,
+  );
   const [cachedArticles, setCachedArticles] = useState<NewsArticle[]>([]);
 
   const handleBetSelect = (bet: HedgeRecommendation | null) => {
@@ -72,7 +77,7 @@ export default function Home() {
 
       try {
         const response = await fetch(
-          `/api/stocks?tickers=${newTickers.join(",")}`
+          `/api/stocks?tickers=${newTickers.join(",")}`,
         );
         if (response.ok) {
           const data = await response.json();
@@ -86,7 +91,7 @@ export default function Home() {
         console.error("Failed to fetch stock data:", err);
       }
     },
-    [stockInfo]
+    [stockInfo],
   );
 
   useEffect(() => {
@@ -98,13 +103,15 @@ export default function Home() {
   useEffect(() => {
     // Only clear if we have results and portfolio changed
     if (analysisResult) {
-      const currentTickers = new Set(portfolio.map(p => p.ticker));
+      const currentTickers = new Set(portfolio.map((p) => p.ticker));
       const analyzedTickers = new Set(
-        analysisResult.recommendations.flatMap(r => r.affectedStocks)
+        analysisResult.recommendations.flatMap((r) => r.affectedStocks),
       );
-      
+
       // Check if all analyzed stocks are still in portfolio
-      const stillValid = [...analyzedTickers].every(t => currentTickers.has(t));
+      const stillValid = [...analyzedTickers].every((t) =>
+        currentTickers.has(t),
+      );
       if (!stillValid && portfolio.length > 0) {
         // Don't auto-clear, just let user re-analyze
       }
@@ -122,7 +129,7 @@ export default function Home() {
           <p className="text-muted-foreground max-w-xl mx-auto leading-relaxed mb-6">
             Advanced prediction market analytics & trading tools
           </p>
-          
+
           {/* Tabs */}
           <div className="flex justify-center">
             <TabNav activeTab={activeTab} onTabChange={setActiveTab} />
@@ -151,6 +158,14 @@ export default function Home() {
             onBetSelect={handleBetSelect}
           />
         )}
+        {activeTab === "risks" && (
+          <RiskView
+            portfolio={portfolio}
+            stockInfo={stockInfo}
+            hedges={analysisResult?.recommendations || []}
+            onGoToHedges={() => setActiveTab("hedges")}
+          />
+        )}
         {activeTab === "news" && (
           <NewsView
             portfolio={portfolio}
@@ -165,10 +180,12 @@ export default function Home() {
           <GreeksView
             recommendations={analysisResult?.recommendations || []}
             stockInfo={stockInfo}
-            portfolioValue={portfolio.reduce((sum, p) => {
-              const info = stockInfo[p.ticker];
-              return sum + (info?.price || 0) * p.shares;
-            }, 0) || 50000}
+            portfolioValue={
+              portfolio.reduce((sum, p) => {
+                const info = stockInfo[p.ticker];
+                return sum + (info?.price || 0) * p.shares;
+              }, 0) || 50000
+            }
           />
         )}
       </main>

@@ -40,16 +40,32 @@ const DEMO_PORTFOLIOS = {
 };
 
 // Common column names for ticker/symbol
-const TICKER_COLUMNS = ["symbol", "ticker", "stock", "name", "security", "holding", "asset"];
+const TICKER_COLUMNS = [
+  "symbol",
+  "ticker",
+  "stock",
+  "name",
+  "security",
+  "holding",
+  "asset",
+];
 // Common column names for quantity/shares
-const SHARES_COLUMNS = ["shares", "quantity", "qty", "units", "amount", "position", "holdings"];
+const SHARES_COLUMNS = [
+  "shares",
+  "quantity",
+  "qty",
+  "units",
+  "amount",
+  "position",
+  "holdings",
+];
 
 function parsePortfolioData(text: string): PortfolioItem[] {
   const lines = text.trim().split(/\r?\n/);
   if (lines.length === 0) return [];
 
   const items: PortfolioItem[] = [];
-  
+
   // Detect delimiter (comma, tab, or multiple spaces)
   const firstLine = lines[0];
   let delimiter: string | RegExp = ",";
@@ -60,11 +76,15 @@ function parsePortfolioData(text: string): PortfolioItem[] {
   }
 
   // Split all lines
-  const rows = lines.map(line => {
+  const rows = lines.map((line) => {
     if (typeof delimiter === "string") {
-      return line.split(delimiter).map(cell => cell.trim().replace(/^["']|["']$/g, ""));
+      return line
+        .split(delimiter)
+        .map((cell) => cell.trim().replace(/^["']|["']$/g, ""));
     }
-    return line.split(delimiter).map(cell => cell.trim().replace(/^["']|["']$/g, ""));
+    return line
+      .split(delimiter)
+      .map((cell) => cell.trim().replace(/^["']|["']$/g, ""));
   });
 
   // Try to detect header row and column indices
@@ -73,14 +93,14 @@ function parsePortfolioData(text: string): PortfolioItem[] {
   let startRow = 0;
 
   // Check if first row is a header
-  const headerRow = rows[0].map(h => h.toLowerCase());
-  
+  const headerRow = rows[0].map((h) => h.toLowerCase());
+
   for (let i = 0; i < headerRow.length; i++) {
     const header = headerRow[i];
-    if (tickerCol === -1 && TICKER_COLUMNS.some(t => header.includes(t))) {
+    if (tickerCol === -1 && TICKER_COLUMNS.some((t) => header.includes(t))) {
       tickerCol = i;
     }
-    if (sharesCol === -1 && SHARES_COLUMNS.some(s => header.includes(s))) {
+    if (sharesCol === -1 && SHARES_COLUMNS.some((s) => header.includes(s))) {
       sharesCol = i;
     }
   }
@@ -104,7 +124,13 @@ function parsePortfolioData(text: string): PortfolioItem[] {
     const shares = parseFloat(sharesStr);
 
     // Validate: ticker should be 1-5 uppercase letters, shares should be positive
-    if (ticker && ticker.length >= 1 && ticker.length <= 5 && !isNaN(shares) && shares > 0) {
+    if (
+      ticker &&
+      ticker.length >= 1 &&
+      ticker.length <= 5 &&
+      !isNaN(shares) &&
+      shares > 0
+    ) {
       // Round shares to whole number
       items.push({ ticker, shares: Math.round(shares) });
     }
@@ -116,7 +142,10 @@ function parsePortfolioData(text: string): PortfolioItem[] {
     deduped.set(item.ticker, (deduped.get(item.ticker) || 0) + item.shares);
   }
 
-  return Array.from(deduped.entries()).map(([ticker, shares]) => ({ ticker, shares }));
+  return Array.from(deduped.entries()).map(([ticker, shares]) => ({
+    ticker,
+    shares,
+  }));
 }
 
 export function PortfolioInput({
@@ -130,7 +159,7 @@ export function PortfolioInput({
   const [showImport, setShowImport] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   // Broker connection state
   const [isConnectingBroker, setIsConnectingBroker] = useState(false);
   const [brokerError, setBrokerError] = useState<string | null>(null);
@@ -141,13 +170,13 @@ export function PortfolioInput({
     const params = new URLSearchParams(window.location.search);
     const isCallback = params.get("brokerage_callback") === "true";
     const status = params.get("status")?.toLowerCase();
-    
+
     if (isCallback) {
       // Clean up URL
       window.history.replaceState({}, "", window.location.pathname);
-      
+
       console.log("[Broker Callback] Status:", status);
-      
+
       if (status === "success") {
         // Fetch holdings from connected broker
         fetchBrokerHoldings();
@@ -156,7 +185,7 @@ export function PortfolioInput({
         setBrokerError(error);
       }
     }
-    
+
     // Check if already connected
     const userId = localStorage.getItem("snaptrade_user_id");
     const userSecret = localStorage.getItem("snaptrade_user_secret");
@@ -168,7 +197,7 @@ export function PortfolioInput({
   const fetchBrokerHoldings = async () => {
     const userId = localStorage.getItem("snaptrade_user_id");
     const userSecret = localStorage.getItem("snaptrade_user_secret");
-    
+
     if (!userId || !userSecret) {
       setBrokerError("Missing broker credentials");
       return;
@@ -177,7 +206,7 @@ export function PortfolioInput({
     try {
       setIsConnectingBroker(true);
       setBrokerError(null);
-      
+
       const response = await fetch("/api/brokerage/snaptrade/holdings", {
         headers: {
           "x-snaptrade-user-id": userId,
@@ -190,33 +219,39 @@ export function PortfolioInput({
       }
 
       const data = await response.json();
-      
+
       if (data.holdings && data.holdings.length > 0) {
-        const portfolioItems: PortfolioItem[] = data.holdings.map((h: { ticker: string; shares: number }) => ({
-          ticker: h.ticker,
-          shares: Math.round(h.shares),
-        }));
+        const portfolioItems: PortfolioItem[] = data.holdings.map(
+          (h: { ticker: string; shares: number }) => ({
+            ticker: h.ticker,
+            shares: Math.round(h.shares),
+          }),
+        );
         setPortfolio(portfolioItems);
         setBrokerConnected(true);
       } else {
         setBrokerError("No holdings found in connected account");
       }
     } catch (err) {
-      setBrokerError(err instanceof Error ? err.message : "Failed to fetch holdings");
+      setBrokerError(
+        err instanceof Error ? err.message : "Failed to fetch holdings",
+      );
     } finally {
       setIsConnectingBroker(false);
     }
   };
 
-  const handleConnectBroker = async (forceNew = false) => {
+  const handleConnectBroker = async (forceNew: boolean = false) => {
     try {
       setIsConnectingBroker(true);
       setBrokerError(null);
-      
+
       // Check for existing credentials or generate new user ID
       let userId = forceNew ? null : localStorage.getItem("snaptrade_user_id");
-      let userSecret = forceNew ? null : localStorage.getItem("snaptrade_user_secret");
-      
+      let userSecret = forceNew
+        ? null
+        : localStorage.getItem("snaptrade_user_secret");
+
       if (!userId) {
         // Clear any stale credentials
         localStorage.removeItem("snaptrade_user_id");
@@ -236,7 +271,7 @@ export function PortfolioInput({
 
       if (!response.ok) {
         const data = await response.json();
-        
+
         // If credentials are invalid, clear them and retry with fresh registration
         if (data.code === "INVALID_CREDENTIALS" && !forceNew) {
           console.log("Stale credentials, retrying with fresh registration...");
@@ -244,20 +279,22 @@ export function PortfolioInput({
           localStorage.removeItem("snaptrade_user_secret");
           return handleConnectBroker(true);
         }
-        
+
         throw new Error(data.error || "Failed to initialize connection");
       }
 
       const data = await response.json();
-      
+
       // Store credentials for after OAuth callback
       localStorage.setItem("snaptrade_user_id", data.userId);
       localStorage.setItem("snaptrade_user_secret", data.userSecret);
-      
+
       // Redirect to SnapTrade OAuth
       window.location.href = data.redirectUrl;
     } catch (err) {
-      setBrokerError(err instanceof Error ? err.message : "Failed to connect broker");
+      setBrokerError(
+        err instanceof Error ? err.message : "Failed to connect broker",
+      );
       setIsConnectingBroker(false);
     }
   };
@@ -278,11 +315,14 @@ export function PortfolioInput({
     if (existingIndex >= 0) {
       setPortfolio((prev) =>
         prev.map((p, i) =>
-          i === existingIndex ? { ...p, shares: p.shares + sharesNum } : p
-        )
+          i === existingIndex ? { ...p, shares: p.shares + sharesNum } : p,
+        ),
       );
     } else {
-      setPortfolio((prev) => [...prev, { ticker: tickerUpper, shares: sharesNum }]);
+      setPortfolio((prev) => [
+        ...prev,
+        { ticker: tickerUpper, shares: sharesNum },
+      ]);
     }
 
     setTicker("");
@@ -303,9 +343,11 @@ export function PortfolioInput({
   const handleImport = () => {
     setImportError(null);
     const items = parsePortfolioData(importText);
-    
+
     if (items.length === 0) {
-      setImportError("Could not parse any valid stocks. Make sure format is: TICKER, SHARES");
+      setImportError(
+        "Could not parse any valid stocks. Make sure format is: TICKER, SHARES",
+      );
       return;
     }
 
@@ -324,7 +366,7 @@ export function PortfolioInput({
       if (text) {
         setImportError(null);
         const items = parsePortfolioData(text);
-        
+
         if (items.length === 0) {
           setImportError("Could not parse any valid stocks from file.");
           return;
@@ -335,7 +377,7 @@ export function PortfolioInput({
       }
     };
     reader.readAsText(file);
-    
+
     // Reset file input
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -396,7 +438,7 @@ export function PortfolioInput({
             <Button
               variant="ghost"
               size="sm"
-              onClick={handleConnectBroker}
+              onClick={() => handleConnectBroker()}
               disabled={isConnectingBroker}
               className="text-muted-foreground hover:text-foreground"
             >
@@ -411,8 +453,10 @@ export function PortfolioInput({
         {/* Import Section - Inline */}
         {showImport && (
           <div className="space-y-4 p-4 bg-secondary/50 rounded-lg border border-border">
-            <p className="text-sm font-medium">Import Portfolio (replaces current)</p>
-            
+            <p className="text-sm font-medium">
+              Import Portfolio (replaces current)
+            </p>
+
             {/* File Upload */}
             <div>
               <input
@@ -428,7 +472,9 @@ export function PortfolioInput({
                 className="inline-flex items-center gap-2 px-4 py-2 bg-background border border-border rounded-md cursor-pointer hover:bg-secondary transition-colors text-sm"
               >
                 <span>Upload CSV</span>
-                <span className="text-muted-foreground text-xs">(Fidelity, Schwab, Robinhood, etc.)</span>
+                <span className="text-muted-foreground text-xs">
+                  (Fidelity, Schwab, Robinhood, etc.)
+                </span>
               </label>
             </div>
 
@@ -451,7 +497,11 @@ MSFT, 30`}
               <p className="text-sm text-destructive">{importError}</p>
             )}
 
-            <Button size="sm" onClick={handleImport} disabled={!importText.trim()}>
+            <Button
+              size="sm"
+              onClick={handleImport}
+              disabled={!importText.trim()}
+            >
               Import & Replace
             </Button>
           </div>
@@ -471,11 +521,12 @@ MSFT, 30`}
               <div>
                 <p className="font-medium">Connect Your Brokerage</p>
                 <p className="text-sm text-muted-foreground">
-                  Import your real portfolio from Fidelity, Schwab, Robinhood & more
+                  Import your real portfolio from Fidelity, Schwab, Robinhood &
+                  more
                 </p>
               </div>
               <Button
-                onClick={handleConnectBroker}
+                onClick={() => handleConnectBroker()}
                 disabled={isConnectingBroker}
                 className="bg-accent text-accent-foreground hover:bg-accent/90"
               >
@@ -567,7 +618,7 @@ MSFT, 30`}
               ×
             </button>
           </div>
-          
+
           {/* File Upload */}
           <div>
             <input
@@ -583,7 +634,9 @@ MSFT, 30`}
               className="inline-flex items-center gap-2 px-4 py-2 bg-background border border-border rounded-md cursor-pointer hover:bg-secondary transition-colors text-sm"
             >
               <span>Upload CSV</span>
-              <span className="text-muted-foreground text-xs">(from Fidelity, Schwab, Robinhood, etc.)</span>
+              <span className="text-muted-foreground text-xs">
+                (from Fidelity, Schwab, Robinhood, etc.)
+              </span>
             </label>
           </div>
 
@@ -609,7 +662,11 @@ Or paste directly from your broker...`}
             <p className="text-sm text-destructive">{importError}</p>
           )}
 
-          <Button size="sm" onClick={handleImport} disabled={!importText.trim()}>
+          <Button
+            size="sm"
+            onClick={handleImport}
+            disabled={!importText.trim()}
+          >
             Import
           </Button>
         </div>

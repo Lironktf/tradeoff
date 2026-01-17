@@ -1,6 +1,6 @@
 "use client";
 
-export type TabType = "portfolio" | "hedges" | "news" | "greeks";
+export type TabType = "portfolio" | "hedges" | "risks" | "news" | "greeks";
 
 interface TabNavProps {
   activeTab: TabType;
@@ -10,6 +10,7 @@ interface TabNavProps {
 const TABS: { id: TabType; label: string }[] = [
   { id: "portfolio", label: "Portfolio" },
   { id: "hedges", label: "Hedges" },
+  { id: "risks", label: "Risks" },
   { id: "news", label: "News" },
   { id: "greeks", label: "Greeks" },
 ];
