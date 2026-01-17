@@ -8,8 +8,6 @@ import type { PortfolioItem } from "@/app/page";
 interface PortfolioInputProps {
   portfolio: PortfolioItem[];
   setPortfolio: React.Dispatch<React.SetStateAction<PortfolioItem[]>>;
-  onAnalyze: () => void;
-  isAnalyzing: boolean;
   compact?: boolean;
 }
 
@@ -49,7 +47,7 @@ function parsePortfolioData(text: string): PortfolioItem[] {
   
   // Detect delimiter (comma, tab, or multiple spaces)
   const firstLine = lines[0];
-  let delimiter = ",";
+  let delimiter: string | RegExp = ",";
   if (firstLine.includes("\t")) {
     delimiter = "\t";
   } else if (!firstLine.includes(",") && firstLine.includes("  ")) {
@@ -119,8 +117,6 @@ function parsePortfolioData(text: string): PortfolioItem[] {
 export function PortfolioInput({
   portfolio,
   setPortfolio,
-  onAnalyze,
-  isAnalyzing,
   compact = false,
 }: PortfolioInputProps) {
   const [ticker, setTicker] = useState("");
@@ -206,43 +202,94 @@ export function PortfolioInput({
     }
   };
 
-  // Compact mode - just show add form and analyze button
+  // Compact mode - just show add form and import button (no analyze)
   if (compact) {
     return (
-      <div className="flex flex-wrap items-center gap-3">
-        <Input
-          type="text"
-          placeholder="Add ticker"
-          value={ticker}
-          onChange={(e) => setTicker(e.target.value)}
-          onKeyDown={handleKeyDown}
-          className="w-32 font-mono uppercase"
-        />
-        <Input
-          type="number"
-          placeholder="Shares"
-          value={shares}
-          onChange={(e) => setShares(e.target.value)}
-          onKeyDown={handleKeyDown}
-          className="w-24"
-          min="1"
-        />
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={handleAdd}
-          disabled={!ticker.trim() || !shares.trim()}
-        >
-          Add
-        </Button>
-        <div className="flex-1" />
-        <Button
-          onClick={onAnalyze}
-          disabled={portfolio.length === 0 || isAnalyzing}
-          className="bg-accent text-accent-foreground hover:bg-accent/90"
-        >
-          {isAnalyzing ? "Analyzing..." : "Analyze Portfolio"}
-        </Button>
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <Input
+            type="text"
+            placeholder="Add ticker"
+            value={ticker}
+            onChange={(e) => setTicker(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="w-32 font-mono uppercase"
+          />
+          <Input
+            type="number"
+            placeholder="Shares"
+            value={shares}
+            onChange={(e) => setShares(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="w-24"
+            min="1"
+          />
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={handleAdd}
+            disabled={!ticker.trim() || !shares.trim()}
+          >
+            Add
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowImport(!showImport)}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            {showImport ? "Cancel" : "Import"}
+          </Button>
+        </div>
+
+        {/* Import Section - Inline */}
+        {showImport && (
+          <div className="space-y-4 p-4 bg-secondary/50 rounded-lg border border-border">
+            <p className="text-sm font-medium">Import Portfolio (replaces current)</p>
+            
+            {/* File Upload */}
+            <div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv,.txt,.tsv"
+                onChange={handleFileUpload}
+                className="hidden"
+                id="portfolio-file-compact"
+              />
+              <label
+                htmlFor="portfolio-file-compact"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-background border border-border rounded-md cursor-pointer hover:bg-secondary transition-colors text-sm"
+              >
+                <span>Upload CSV</span>
+                <span className="text-muted-foreground text-xs">(Fidelity, Schwab, Robinhood, etc.)</span>
+              </label>
+            </div>
+
+            {/* Paste Area */}
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground">
+                Or paste your holdings:
+              </p>
+              <textarea
+                value={importText}
+                onChange={(e) => setImportText(e.target.value)}
+                placeholder={`Symbol, Shares
+NVDA, 50
+MSFT, 30`}
+                className="w-full h-24 px-3 py-2 bg-background border border-border rounded-md font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-accent"
+              />
+            </div>
+
+            {importError && (
+              <p className="text-sm text-destructive">{importError}</p>
+            )}
+
+            <Button size="sm" onClick={handleImport} disabled={!importText.trim()}>
+              Import & Replace
+            </Button>
+          </div>
+        )}
       </div>
     );
   }
@@ -379,17 +426,6 @@ Or paste directly from your broker...`}
           disabled={!ticker.trim() || !shares.trim()}
         >
           Add
-        </Button>
-      </div>
-
-      {/* Analyze Button */}
-      <div className="pt-4">
-        <Button
-          onClick={onAnalyze}
-          disabled={portfolio.length === 0 || isAnalyzing}
-          className="px-8 bg-accent text-accent-foreground hover:bg-accent/90"
-        >
-          {isAnalyzing ? "Analyzing..." : "Analyze Portfolio"}
         </Button>
       </div>
     </div>

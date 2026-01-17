@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { TabNav } from "@/components/TabNav";
+import { useState, useEffect, useCallback } from "react";
+import { TabNav, type TabType } from "@/components/TabNav";
+import { PortfolioView } from "@/components/portfolio/PortfolioView";
 import { HedgeView } from "@/components/hedge/HedgeView";
-import { AnalyticsView } from "@/components/analytics/AnalyticsView";
+import { NewsView } from "@/components/analytics/AnalyticsView";
+import { GreeksView } from "@/components/greeks/GreeksView";
 
 // Shared types - exported for use in other components
 export interface PortfolioItem {
@@ -22,6 +24,7 @@ export interface StockInfo {
 export interface HedgeRecommendation {
   market: string;
   marketUrl: string;
+  outcome: string;
   probability: number;
   position: "YES" | "NO";
   reasoning: string;
@@ -43,20 +46,70 @@ export interface AnalysisResult {
 }
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<"hedge" | "analytics">("hedge");
+  const [activeTab, setActiveTab] = useState<TabType>("portfolio");
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
   const [stockInfo, setStockInfo] = useState<Record<string, StockInfo>>({});
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+
+  // Fetch stock data when portfolio changes
+  const fetchStockData = useCallback(
+    async (tickers: string[]) => {
+      if (tickers.length === 0) return;
+
+      const newTickers = tickers.filter((t) => !stockInfo[t]);
+      if (newTickers.length === 0) return;
+
+      try {
+        const response = await fetch(
+          `/api/stocks?tickers=${newTickers.join(",")}`
+        );
+        if (response.ok) {
+          const data = await response.json();
+          const newInfo: Record<string, StockInfo> = {};
+          for (const stock of data.stocks) {
+            newInfo[stock.ticker] = stock;
+          }
+          setStockInfo((prev) => ({ ...prev, ...newInfo }));
+        }
+      } catch (err) {
+        console.error("Failed to fetch stock data:", err);
+      }
+    },
+    [stockInfo]
+  );
+
+  useEffect(() => {
+    const tickers = portfolio.map((p) => p.ticker);
+    fetchStockData(tickers);
+  }, [portfolio, fetchStockData]);
+
+  // Clear analysis when portfolio changes significantly
+  useEffect(() => {
+    // Only clear if we have results and portfolio changed
+    if (analysisResult) {
+      const currentTickers = new Set(portfolio.map(p => p.ticker));
+      const analyzedTickers = new Set(
+        analysisResult.recommendations.flatMap(r => r.affectedStocks)
+      );
+      
+      // Check if all analyzed stocks are still in portfolio
+      const stillValid = [...analyzedTickers].every(t => currentTickers.has(t));
+      if (!stillValid && portfolio.length > 0) {
+        // Don't auto-clear, just let user re-analyze
+      }
+    }
+  }, [portfolio, analysisResult]);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Hero Header */}
-      <header className="pt-16 pb-6 px-6">
-        <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-4xl md:text-5xl font-semibold tracking-tight mb-4">
-            Polymarket Hedge
+      <header className="pt-12 pb-4 px-6">
+        <div className="max-w-5xl mx-auto text-center">
+          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight mb-2">
+            Polymarket Terminal
           </h1>
-          <p className="text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed mb-8">
-            AI-powered portfolio analysis. Find prediction market bets that hedge your stock exposure.
+          <p className="text-muted-foreground max-w-xl mx-auto leading-relaxed mb-6">
+            Advanced prediction market analytics & trading tools
           </p>
           
           {/* Tabs */}
@@ -67,26 +120,46 @@ export default function Home() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 max-w-4xl w-full mx-auto px-6 pb-16">
-        {activeTab === "hedge" ? (
-          <HedgeView
+      <main className="flex-1 max-w-5xl w-full mx-auto px-6 pb-16">
+        {activeTab === "portfolio" && (
+          <PortfolioView
             portfolio={portfolio}
             setPortfolio={setPortfolio}
             stockInfo={stockInfo}
             setStockInfo={setStockInfo}
           />
-        ) : (
-          <AnalyticsView
+        )}
+        {activeTab === "hedges" && (
+          <HedgeView
+            portfolio={portfolio}
+            setPortfolio={setPortfolio}
+            stockInfo={stockInfo}
+            analysisResult={analysisResult}
+            setAnalysisResult={setAnalysisResult}
+          />
+        )}
+        {activeTab === "news" && (
+          <NewsView
             portfolio={portfolio}
             stockInfo={stockInfo}
+          />
+        )}
+        {activeTab === "greeks" && (
+          <GreeksView
+            recommendations={analysisResult?.recommendations || []}
+            stockInfo={stockInfo}
+            portfolioValue={portfolio.reduce((sum, p) => {
+              const info = stockInfo[p.ticker];
+              return sum + (info?.price || 0) * p.shares;
+            }, 0) || 50000}
           />
         )}
       </main>
 
       {/* Footer */}
       <footer className="border-t border-border py-6 px-6">
-        <div className="max-w-4xl mx-auto text-center text-sm text-muted-foreground">
-          Built for NexHacks 2026 &middot; Powered by Polymarket, The Token Company & Groq
+        <div className="max-w-5xl mx-auto text-center text-sm text-muted-foreground">
+          Built for NexHacks 2026 &middot; Powered by Polymarket & Groq
         </div>
       </footer>
     </div>
