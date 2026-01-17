@@ -16,23 +16,28 @@ import { NextRequest, NextResponse } from "next/server";
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   
-  const status = searchParams.get("status") || "error";
-  const authorizationId = searchParams.get("authorizationId") || "";
-  const broker = searchParams.get("broker") || "";
-  const errorMessage = searchParams.get("error_message") || "";
+  // SnapTrade sends status as uppercase (SUCCESS, ERROR)
+  const rawStatus = searchParams.get("status") || "error";
+  const status = rawStatus.toLowerCase(); // Normalize to lowercase
+  
+  // SnapTrade sends connection_id, not authorizationId
+  const connectionId = searchParams.get("connection_id") || searchParams.get("authorizationId") || "";
+  const broker = searchParams.get("broker") || searchParams.get("brokerage") || "";
+  const errorMessage = searchParams.get("error_message") || searchParams.get("error") || "";
+
+  console.log("[SnapTrade Callback] Received:", { rawStatus, status, connectionId, broker, errorMessage });
 
   // Build redirect URL to frontend
   // The frontend should handle displaying success/error to user
   const baseUrl = getBaseUrl(request);
   const redirectParams = new URLSearchParams({
     status,
-    authorizationId,
+    connectionId,
     broker,
     ...(errorMessage && { error: errorMessage }),
   });
 
   // Redirect to frontend brokerage connection page
-  // Adjust this path based on your frontend routing
   const redirectUrl = `${baseUrl}/?brokerage_callback=true&${redirectParams.toString()}`;
 
   return NextResponse.redirect(redirectUrl);

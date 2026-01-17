@@ -15,16 +15,16 @@ export function HedgeCard({ recommendation, stockInfo = {}, onBetSelect }: Hedge
   const {
     market,
     marketUrl,
+    outcome,
     probability,
     position,
     reasoning,
-    hedgesAgainst,
     suggestedAllocation,
     affectedStocks,
-    confidence,
   } = recommendation;
 
   const stockCount = affectedStocks.length;
+  const currentOdds = Math.round(probability * 100);
 
   const handleNewsClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -34,18 +34,18 @@ export function HedgeCard({ recommendation, stockInfo = {}, onBetSelect }: Hedge
   };
 
   return (
-    <Card className="bg-card border-border hover:border-accent/50 transition-colors">
+    <Card className="bg-card border-border">
       <CardContent className="p-5 space-y-4">
-        {/* Affected Stocks - Prominent at top */}
+        {/* Affected Stocks */}
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs text-muted-foreground mr-1">
+          <span className="text-sm text-muted-foreground">
             Hedges {stockCount} stock{stockCount !== 1 ? "s" : ""}:
           </span>
           {affectedStocks.map((ticker) => {
             const info = stockInfo[ticker];
             return (
               <div key={ticker} className="group relative">
-                <span className="px-2 py-1 rounded bg-accent/15 text-accent font-mono font-medium text-sm border border-accent/20">
+                <span className="px-2 py-0.5 rounded bg-accent/15 text-accent font-mono text-sm border border-accent/20">
                   {ticker}
                 </span>
                 {info && (
@@ -58,84 +58,52 @@ export function HedgeCard({ recommendation, stockInfo = {}, onBetSelect }: Hedge
           })}
         </div>
 
-        {/* Market Title & Position */}
+        {/* Market & Bet Info */}
         <div className="flex items-start justify-between gap-4">
-          <div className="flex-1">
-            <div className="text-foreground font-medium group inline-flex items-start gap-1">
-              <span>&ldquo;{market}&rdquo;</span>
-              <a
-                href={marketUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-muted-foreground hover:text-accent transition-colors shrink-0"
-              >
-                ↗
-              </a>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="text-2xl font-semibold font-mono">
-              {Math.round(probability * 100)}%
-            </span>
-            <span
-              className={`px-2 py-1 rounded text-xs font-medium ${
-                position === "YES"
-                  ? "bg-accent/20 text-accent"
-                  : "bg-destructive/20 text-destructive"
-              }`}
+          <div className="flex-1 min-w-0">
+            <a
+              href={marketUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-foreground hover:text-accent transition-colors font-medium inline-flex items-start gap-1"
             >
-              Bet {position}
-            </span>
+              <span className="line-clamp-2">{market}</span>
+              <span className="text-muted-foreground hover:text-accent shrink-0">↗</span>
+            </a>
+          </div>
+          <div className="text-right shrink-0">
+            <span className="text-2xl font-mono font-semibold">{currentOdds}%</span>
+            <p className="text-xs text-muted-foreground">odds</p>
           </div>
         </div>
 
-        {/* Confidence Badge */}
-        <div className="flex items-center gap-2">
+        {/* Outcome to bet on */}
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-muted-foreground">Bet:</span>
           <span
-            className={`text-xs px-2 py-0.5 rounded ${
-              confidence === "high"
-                ? "bg-green-500/10 text-green-400 border border-green-500/20"
-                : "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"
+            className={`px-3 py-1 rounded text-sm font-medium ${
+              position === "YES"
+                ? "bg-green-500/20 text-green-400"
+                : "bg-red-500/20 text-red-400"
             }`}
           >
-            {confidence === "high" ? "Direct" : "Indirect"} connection
+            {position} on &quot;{outcome}&quot;
           </span>
-          {stockCount >= 3 && (
-            <span className="text-xs px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
-              Multi-stock hedge
-            </span>
-          )}
+          <span className="text-sm text-muted-foreground">•</span>
+          <span className="text-sm font-mono">${suggestedAllocation}</span>
         </div>
 
-        {/* Reasoning */}
-        <p className="text-muted-foreground text-sm leading-relaxed">
-          {reasoning}
-        </p>
-
-        {/* Meta Info */}
-        <div className="flex flex-wrap items-center justify-between gap-4 pt-1">
-          <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
-            <div>
-              <span className="text-muted-foreground">Risk hedged: </span>
-              <span className="text-foreground">{hedgesAgainst}</span>
-            </div>
-            <div>
-              <span className="text-muted-foreground">Suggested bet: </span>
-              <span className="text-foreground font-mono">
-                ${suggestedAllocation.toLocaleString()}
-              </span>
-            </div>
-          </div>
+        {/* Reasoning + News Link */}
+        <div className="flex items-end justify-between gap-4">
+          <p className="text-sm text-muted-foreground flex-1">{reasoning}</p>
           {onBetSelect && (
-            <Button
-              variant="outline"
-              size="sm"
+            <button
               onClick={handleNewsClick}
-              className="flex items-center gap-2"
+              className="text-xs text-muted-foreground hover:text-accent transition-colors flex items-center gap-1 shrink-0"
             >
-              <Newspaper className="w-4 h-4" />
-              View News
-            </Button>
+              <Newspaper className="w-3 h-3" />
+              <span>News</span>
+            </button>
           )}
         </div>
       </CardContent>

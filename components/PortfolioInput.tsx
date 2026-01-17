@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { PortfolioItem } from "@/app/page";
@@ -8,9 +8,12 @@ import type { PortfolioItem } from "@/app/page";
 interface PortfolioInputProps {
   portfolio: PortfolioItem[];
   setPortfolio: React.Dispatch<React.SetStateAction<PortfolioItem[]>>;
-  onAnalyze: () => void;
-  isAnalyzing: boolean;
   compact?: boolean;
+}
+
+// Generate a simple user ID for this session
+function generateUserId(): string {
+  return `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
 const DEMO_PORTFOLIOS = {
@@ -49,7 +52,7 @@ function parsePortfolioData(text: string): PortfolioItem[] {
   
   // Detect delimiter (comma, tab, or multiple spaces)
   const firstLine = lines[0];
-  let delimiter = ",";
+  let delimiter: string | RegExp = ",";
   if (firstLine.includes("\t")) {
     delimiter = "\t";
   } else if (!firstLine.includes(",") && firstLine.includes("  ")) {
@@ -119,8 +122,6 @@ function parsePortfolioData(text: string): PortfolioItem[] {
 export function PortfolioInput({
   portfolio,
   setPortfolio,
-  onAnalyze,
-  isAnalyzing,
   compact = false,
 }: PortfolioInputProps) {
   const [ticker, setTicker] = useState("");
@@ -129,6 +130,141 @@ export function PortfolioInput({
   const [showImport, setShowImport] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Broker connection state
+  const [isConnectingBroker, setIsConnectingBroker] = useState(false);
+  const [brokerError, setBrokerError] = useState<string | null>(null);
+  const [brokerConnected, setBrokerConnected] = useState(false);
+
+  // Check for brokerage callback on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const isCallback = params.get("brokerage_callback") === "true";
+    const status = params.get("status")?.toLowerCase();
+    
+    if (isCallback) {
+      // Clean up URL
+      window.history.replaceState({}, "", window.location.pathname);
+      
+      console.log("[Broker Callback] Status:", status);
+      
+      if (status === "success") {
+        // Fetch holdings from connected broker
+        fetchBrokerHoldings();
+      } else {
+        const error = params.get("error") || `Connection ${status || "failed"}`;
+        setBrokerError(error);
+      }
+    }
+    
+    // Check if already connected
+    const userId = localStorage.getItem("snaptrade_user_id");
+    const userSecret = localStorage.getItem("snaptrade_user_secret");
+    if (userId && userSecret) {
+      setBrokerConnected(true);
+    }
+  }, []);
+
+  const fetchBrokerHoldings = async () => {
+    const userId = localStorage.getItem("snaptrade_user_id");
+    const userSecret = localStorage.getItem("snaptrade_user_secret");
+    
+    if (!userId || !userSecret) {
+      setBrokerError("Missing broker credentials");
+      return;
+    }
+
+    try {
+      setIsConnectingBroker(true);
+      setBrokerError(null);
+      
+      const response = await fetch("/api/brokerage/snaptrade/holdings", {
+        headers: {
+          "x-snaptrade-user-id": userId,
+          "x-snaptrade-user-secret": userSecret,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch holdings");
+      }
+
+      const data = await response.json();
+      
+      if (data.holdings && data.holdings.length > 0) {
+        const portfolioItems: PortfolioItem[] = data.holdings.map((h: { ticker: string; shares: number }) => ({
+          ticker: h.ticker,
+          shares: Math.round(h.shares),
+        }));
+        setPortfolio(portfolioItems);
+        setBrokerConnected(true);
+      } else {
+        setBrokerError("No holdings found in connected account");
+      }
+    } catch (err) {
+      setBrokerError(err instanceof Error ? err.message : "Failed to fetch holdings");
+    } finally {
+      setIsConnectingBroker(false);
+    }
+  };
+
+  const handleConnectBroker = async (forceNew = false) => {
+    try {
+      setIsConnectingBroker(true);
+      setBrokerError(null);
+      
+      // Check for existing credentials or generate new user ID
+      let userId = forceNew ? null : localStorage.getItem("snaptrade_user_id");
+      let userSecret = forceNew ? null : localStorage.getItem("snaptrade_user_secret");
+      
+      if (!userId) {
+        // Clear any stale credentials
+        localStorage.removeItem("snaptrade_user_id");
+        localStorage.removeItem("snaptrade_user_secret");
+        userId = generateUserId();
+        userSecret = null;
+      }
+
+      const response = await fetch("/api/brokerage/snaptrade/connect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId,
+          userSecret,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        
+        // If credentials are invalid, clear them and retry with fresh registration
+        if (data.code === "INVALID_CREDENTIALS" && !forceNew) {
+          console.log("Stale credentials, retrying with fresh registration...");
+          localStorage.removeItem("snaptrade_user_id");
+          localStorage.removeItem("snaptrade_user_secret");
+          return handleConnectBroker(true);
+        }
+        
+        throw new Error(data.error || "Failed to initialize connection");
+      }
+
+      const data = await response.json();
+      
+      // Store credentials for after OAuth callback
+      localStorage.setItem("snaptrade_user_id", data.userId);
+      localStorage.setItem("snaptrade_user_secret", data.userSecret);
+      
+      // Redirect to SnapTrade OAuth
+      window.location.href = data.redirectUrl;
+    } catch (err) {
+      setBrokerError(err instanceof Error ? err.message : "Failed to connect broker");
+      setIsConnectingBroker(false);
+    }
+  };
+
+  const handleRefreshHoldings = async () => {
+    await fetchBrokerHoldings();
+  };
 
   const handleAdd = () => {
     if (!ticker.trim() || !shares.trim()) return;
@@ -206,87 +342,212 @@ export function PortfolioInput({
     }
   };
 
-  // Compact mode - just show add form and analyze button
+  // Compact mode - just show add form and import button (no analyze)
   if (compact) {
     return (
-      <div className="flex flex-wrap items-center gap-3">
-        <Input
-          type="text"
-          placeholder="Add ticker"
-          value={ticker}
-          onChange={(e) => setTicker(e.target.value)}
-          onKeyDown={handleKeyDown}
-          className="w-32 font-mono uppercase"
-        />
-        <Input
-          type="number"
-          placeholder="Shares"
-          value={shares}
-          onChange={(e) => setShares(e.target.value)}
-          onKeyDown={handleKeyDown}
-          className="w-24"
-          min="1"
-        />
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={handleAdd}
-          disabled={!ticker.trim() || !shares.trim()}
-        >
-          Add
-        </Button>
-        <div className="flex-1" />
-        <Button
-          onClick={onAnalyze}
-          disabled={portfolio.length === 0 || isAnalyzing}
-          className="bg-accent text-accent-foreground hover:bg-accent/90"
-        >
-          {isAnalyzing ? "Analyzing..." : "Analyze Portfolio"}
-        </Button>
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <Input
+            type="text"
+            placeholder="Add ticker"
+            value={ticker}
+            onChange={(e) => setTicker(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="w-32 font-mono uppercase"
+          />
+          <Input
+            type="number"
+            placeholder="Shares"
+            value={shares}
+            onChange={(e) => setShares(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="w-24"
+            min="1"
+          />
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={handleAdd}
+            disabled={!ticker.trim() || !shares.trim()}
+          >
+            Add
+          </Button>
+          <div className="flex-1" />
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowImport(!showImport)}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            {showImport ? "Cancel" : "Import"}
+          </Button>
+          {brokerConnected ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleRefreshHoldings}
+              disabled={isConnectingBroker}
+              className="text-muted-foreground hover:text-foreground gap-1"
+            >
+              <span className="w-2 h-2 rounded-full bg-green-500" />
+              {isConnectingBroker ? "Syncing..." : "Sync Broker"}
+            </Button>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleConnectBroker}
+              disabled={isConnectingBroker}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              {isConnectingBroker ? "..." : "Connect Broker"}
+            </Button>
+          )}
+        </div>
+        {brokerError && (
+          <p className="text-sm text-destructive">{brokerError}</p>
+        )}
+
+        {/* Import Section - Inline */}
+        {showImport && (
+          <div className="space-y-4 p-4 bg-secondary/50 rounded-lg border border-border">
+            <p className="text-sm font-medium">Import Portfolio (replaces current)</p>
+            
+            {/* File Upload */}
+            <div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv,.txt,.tsv"
+                onChange={handleFileUpload}
+                className="hidden"
+                id="portfolio-file-compact"
+              />
+              <label
+                htmlFor="portfolio-file-compact"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-background border border-border rounded-md cursor-pointer hover:bg-secondary transition-colors text-sm"
+              >
+                <span>Upload CSV</span>
+                <span className="text-muted-foreground text-xs">(Fidelity, Schwab, Robinhood, etc.)</span>
+              </label>
+            </div>
+
+            {/* Paste Area */}
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground">
+                Or paste your holdings:
+              </p>
+              <textarea
+                value={importText}
+                onChange={(e) => setImportText(e.target.value)}
+                placeholder={`Symbol, Shares
+NVDA, 50
+MSFT, 30`}
+                className="w-full h-24 px-3 py-2 bg-background border border-border rounded-md font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-accent"
+              />
+            </div>
+
+            {importError && (
+              <p className="text-sm text-destructive">{importError}</p>
+            )}
+
+            <Button size="sm" onClick={handleImport} disabled={!importText.trim()}>
+              Import & Replace
+            </Button>
+          </div>
+        )}
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* Quick Load Buttons */}
+      {/* Connect Broker - Primary CTA */}
       {portfolio.length === 0 && (
-        <div className="space-y-3">
-          <p className="text-sm text-muted-foreground">Quick load a demo portfolio:</p>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => loadDemo("tech")}
-              className="text-xs"
-            >
-              Tech Heavy
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => loadDemo("crypto")}
-              className="text-xs"
-            >
-              Crypto Exposure
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => loadDemo("diversified")}
-              className="text-xs"
-            >
-              Diversified
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowImport(!showImport)}
-              className="text-xs"
-            >
-              Import Portfolio
-            </Button>
+        <div className="space-y-6">
+          {/* Broker Connection */}
+          <div className="p-4 bg-accent/10 border border-accent/20 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">Connect Your Brokerage</p>
+                <p className="text-sm text-muted-foreground">
+                  Import your real portfolio from Fidelity, Schwab, Robinhood & more
+                </p>
+              </div>
+              <Button
+                onClick={handleConnectBroker}
+                disabled={isConnectingBroker}
+                className="bg-accent text-accent-foreground hover:bg-accent/90"
+              >
+                {isConnectingBroker ? "Connecting..." : "Connect Broker"}
+              </Button>
+            </div>
+            {brokerError && (
+              <p className="text-sm text-destructive mt-2">{brokerError}</p>
+            )}
           </div>
+
+          {/* Divider */}
+          <div className="flex items-center gap-4">
+            <div className="flex-1 h-px bg-border" />
+            <span className="text-xs text-muted-foreground">or try a demo</span>
+            <div className="flex-1 h-px bg-border" />
+          </div>
+
+          {/* Demo Portfolios */}
+          <div className="space-y-3">
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => loadDemo("tech")}
+                className="text-xs"
+              >
+                Tech Heavy
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => loadDemo("crypto")}
+                className="text-xs"
+              >
+                Crypto Exposure
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => loadDemo("diversified")}
+                className="text-xs"
+              >
+                Diversified
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowImport(!showImport)}
+                className="text-xs"
+              >
+                Import CSV
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Broker Refresh - When connected and has portfolio */}
+      {portfolio.length > 0 && brokerConnected && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <span className="w-2 h-2 rounded-full bg-green-500" />
+          <span>Broker connected</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleRefreshHoldings}
+            disabled={isConnectingBroker}
+            className="text-xs"
+          >
+            {isConnectingBroker ? "Syncing..." : "Sync"}
+          </Button>
         </div>
       )}
 
@@ -379,17 +640,6 @@ Or paste directly from your broker...`}
           disabled={!ticker.trim() || !shares.trim()}
         >
           Add
-        </Button>
-      </div>
-
-      {/* Analyze Button */}
-      <div className="pt-4">
-        <Button
-          onClick={onAnalyze}
-          disabled={portfolio.length === 0 || isAnalyzing}
-          className="px-8 bg-accent text-accent-foreground hover:bg-accent/90"
-        >
-          {isAnalyzing ? "Analyzing..." : "Analyze Portfolio"}
         </Button>
       </div>
     </div>

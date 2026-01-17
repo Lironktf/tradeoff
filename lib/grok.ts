@@ -1,6 +1,7 @@
 export interface HedgeRecommendation {
   market: string;
   marketUrl: string;
+  outcome: string; // The specific outcome being bet on (e.g., "$50B-$100B", "Before March 2025")
   probability: number;
   position: "YES" | "NO";
   reasoning: string;
@@ -36,6 +37,7 @@ RULES:
 2. If one market affects multiple stocks, LIST ALL AFFECTED STOCKS together
 3. Quality over quantity - only genuinely relevant hedges
 4. Only use markets from the provided list
+5. ALWAYS specify the EXACT outcome being bet on
 
 GROUPING EXAMPLE:
 If "Will US tariffs exceed $250B?" affects AAPL, TSLA, and NVDA - list them all together, don't create 3 separate entries.
@@ -59,6 +61,7 @@ Respond with JSON:
   "recommendations": [
     {
       "market": "EXACT title from the list",
+      "outcome": "The specific outcome to bet on (e.g., '$50B-$100B', 'Before Q2 2025', 'Yes it will happen', '<500 layoffs')",
       "probability": 0.52,
       "position": "YES",
       "reasoning": "Why this affects these specific stocks",
@@ -70,6 +73,12 @@ Respond with JSON:
   ],
   "stocksWithoutHedges": ["JNJ"]
 }
+
+CRITICAL - About "outcome":
+- For range markets (e.g., "Tesla market cap?"), specify the EXACT range: "$500B-$750B"
+- For date markets (e.g., "When will X launch?"), specify the timeframe: "Q1 2025" or "Before March"
+- For yes/no markets, just say "Yes" or "No" matching your position
+- This tells users WHAT they're betting on, not just the probability
 
 IMPORTANT: 
 - Don't repeat the same market multiple times
@@ -140,6 +149,7 @@ async function tryModel(
     const recommendations = (parsed.recommendations || []).map((rec: Record<string, unknown>) => ({
       market: String(rec.market || ""),
       marketUrl: "",
+      outcome: String(rec.outcome || rec.position || "Yes"), // Fallback to position if no outcome specified
       probability: Number(rec.probability) || 0.5,
       position: rec.position === "NO" ? "NO" : "YES",
       reasoning: String(rec.reasoning || ""),
