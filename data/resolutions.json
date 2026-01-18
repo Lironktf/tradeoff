@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-01-18T06:18:27.790Z",
+  "generatedAt": "2026-01-18T07:02:21.885Z",
   "totalEvents": 556,
   "totalMatches": 39,
   "dateRange": {
@@ -49,26 +49,6 @@
     },
     {
       "event": {
-        "eventId": "10041",
-        "title": "Pornhub restores access in Texas by March 31?",
-        "slug": "pornhub-restores-access-in-texas-by-march-31",
-        "description": "On March 14, Pornhub announced that it had blocked access to its content in Texas after a federal appeals court upheld a Texas law requiring pornography sites to institute age-verification measures (see https://www.nbcnews.com/tech/pornhub-disables-website-texas-rcna143502).\n\nThis market will resolve to \"Yes\" if Pornhub announces that it has restored access for users in Texas by March 31, 2024, 11:59 PM ET. Otherwise, this market will resolve to \"No\".\n\nThe primary resolution source will be official information from Pornhub. However, a consensus of credible reporting may also be used to determine whether Pornhub restored access in Texas.\n",
-        "resolutionDate": "2024-03-31T04:00:00Z",
-        "outcome": "NO",
-        "finalProbability": "0"
-      },
-      "matchedStocks": [
-        {
-          "ticker": "SQ",
-          "companyName": "Block",
-          "priceOnResolution": null,
-          "resolutionDate": "2024-03-31T04:00:00Z"
-        }
-      ],
-      "matchReason": "Description contains \"Block\""
-    },
-    {
-      "event": {
         "eventId": "10047",
         "title": "How many SpaceX Starship launches reach space in 2024?",
         "slug": "how-many-spacex-starship-launches-reach-space-in-2024",
@@ -109,26 +89,6 @@
     },
     {
       "event": {
-        "eventId": "10099",
-        "title": "Haiti intervention by April 30?",
-        "slug": "haiti-intervention-by-april-30",
-        "description": "This market will resolve to \"Yes\" if police officers, security forces, or military personnel from countries other than Haiti conduct officially acknowledged police, military, peacekeeping, and/or security operations on the ground within the sovereign territory of Haiti intended to establish increased national security or stability between March 19, 2024 and April 30, 2024 11:59 PM ET. Otherwise, this market will resolve to \"No\".\n\nFor the intervention to count toward a \"Yes\" resolution, the officially acknowledged police, military, peacekeeping and/or security operations must involve that country's physical police or military presence within the sovereign territory of Haiti. For the purposes of this market, \"police, military, peacekeeping, and/or security operations\" resulting in a \"Yes\" resolution specifically do not include actions exclusively related to surveillance or intelligence performed by aircraft, drones, satellites, etc.\n\nSecurity actions undertaken by a country exclusively to protect, evacuate, or maintain the safety of its embassy and personnel within Haiti will not qualify to resolve this market to \"Yes\".\n\nOfficial acknowledgement must include statements indicating foreign police, military, peacekeeping, or security intervention from the foreign government making the intervention.\n\nA consensus of credible reporting may be used to ascertain the validity of an official acknowledgement.",
-        "resolutionDate": "2024-04-30T04:00:00Z",
-        "outcome": "NO",
-        "finalProbability": "0"
-      },
-      "matchedStocks": [
-        {
-          "ticker": "INTC",
-          "companyName": "Intel",
-          "priceOnResolution": 30.47,
-          "resolutionDate": "2024-04-30T04:00:00Z"
-        }
-      ],
-      "matchReason": "Description contains \"Intel\""
-    },
-    {
-      "event": {
         "eventId": "10100",
         "title": "Boeing emergency landing in US by Mar 31?",
         "slug": "boeing-emergency-landing-in-us-by-mar-31",
@@ -163,15 +123,9 @@
           "companyName": "Twitter",
           "priceOnResolution": null,
           "resolutionDate": "2024-06-01T12:00:00Z"
-        },
-        {
-          "ticker": "X",
-          "companyName": "Twitter",
-          "priceOnResolution": null,
-          "resolutionDate": "2024-06-01T12:00:00Z"
         }
       ],
-      "matchReason": "Description contains \"Twitter\"; Description contains \"Twitter\""
+      "matchReason": "Description contains \"Twitter\""
     },
     {
       "event": {
@@ -209,15 +163,9 @@
           "companyName": "Twitter",
           "priceOnResolution": null,
           "resolutionDate": "2024-04-30T12:00:00Z"
-        },
-        {
-          "ticker": "X",
-          "companyName": "Twitter",
-          "priceOnResolution": null,
-          "resolutionDate": "2024-04-30T12:00:00Z"
         }
       ],
-      "matchReason": "Description contains \"Twitter\"; Description contains \"Twitter\""
+      "matchReason": "Description contains \"Twitter\""
     },
     {
       "event": {
@@ -235,15 +183,9 @@
           "companyName": "Twitter",
           "priceOnResolution": null,
           "resolutionDate": "2024-04-30T12:00:00Z"
-        },
-        {
-          "ticker": "X",
-          "companyName": "Twitter",
-          "priceOnResolution": null,
-          "resolutionDate": "2024-04-30T12:00:00Z"
         }
       ],
-      "matchReason": "Description contains \"Twitter\"; Description contains \"Twitter\""
+      "matchReason": "Description contains \"Twitter\""
     },
     {
       "event": {
@@ -261,15 +203,9 @@
           "companyName": "Twitter",
           "priceOnResolution": null,
           "resolutionDate": "2024-04-19T12:00:00Z"
-        },
-        {
-          "ticker": "X",
-          "companyName": "Twitter",
-          "priceOnResolution": null,
-          "resolutionDate": "2024-04-19T12:00:00Z"
         }
       ],
-      "matchReason": "Description contains \"Twitter\"; Description contains \"Twitter\""
+      "matchReason": "Description contains \"Twitter\""
     },
     {
       "event": {
@@ -347,15 +283,9 @@
           "companyName": "Twitter",
           "priceOnResolution": null,
           "resolutionDate": "2024-04-19T12:00:00Z"
-        },
-        {
-          "ticker": "X",
-          "companyName": "Twitter",
-          "priceOnResolution": null,
-          "resolutionDate": "2024-04-19T12:00:00Z"
         }
       ],
-      "matchReason": "Description contains \"Twitter\"; Description contains \"Twitter\""
+      "matchReason": "Description contains \"Twitter\""
     },
     {
       "event": {
@@ -373,15 +303,9 @@
           "companyName": "Twitter",
           "priceOnResolution": null,
           "resolutionDate": "2024-04-19T12:00:00Z"
-        },
-        {
-          "ticker": "X",
-          "companyName": "Twitter",
-          "priceOnResolution": null,
-          "resolutionDate": "2024-04-19T12:00:00Z"
         }
       ],
-      "matchReason": "Description contains \"Twitter\"; Description contains \"Twitter\""
+      "matchReason": "Description contains \"Twitter\""
     },
     {
       "event": {
@@ -399,15 +323,9 @@
           "companyName": "Twitter",
           "priceOnResolution": null,
           "resolutionDate": "2024-04-19T12:00:00Z"
-        },
-        {
-          "ticker": "X",
-          "companyName": "Twitter",
-          "priceOnResolution": null,
-          "resolutionDate": "2024-04-19T12:00:00Z"
         }
       ],
-      "matchReason": "Description contains \"Twitter\"; Description contains \"Twitter\""
+      "matchReason": "Description contains \"Twitter\""
     },
     {
       "event": {
@@ -505,15 +423,9 @@
           "companyName": "Twitter",
           "priceOnResolution": null,
           "resolutionDate": "2024-11-30T12:00:00Z"
-        },
-        {
-          "ticker": "X",
-          "companyName": "Twitter",
-          "priceOnResolution": null,
-          "resolutionDate": "2024-11-30T12:00:00Z"
         }
       ],
-      "matchReason": "Description contains \"Twitter\"; Description contains \"Twitter\""
+      "matchReason": "Description contains \"Twitter\""
     },
     {
       "event": {
@@ -577,6 +489,46 @@
     },
     {
       "event": {
+        "eventId": "10625",
+        "title": "OpenAI announces search competitor on Monday?",
+        "slug": "will-openai-announce-search-product-on-monday",
+        "description": "",
+        "resolutionDate": "2024-05-13T12:00:00Z",
+        "outcome": "NO",
+        "finalProbability": "0"
+      },
+      "matchedStocks": [
+        {
+          "ticker": "MSFT",
+          "companyName": "OpenAI",
+          "priceOnResolution": 413.72,
+          "resolutionDate": "2024-05-13T12:00:00Z"
+        }
+      ],
+      "matchReason": "Title contains \"OpenAI\""
+    },
+    {
+      "event": {
+        "eventId": "10626",
+        "title": "OpenAI public release of search product by Friday?",
+        "slug": "openai-public-release-of-search-product-by-next-friday",
+        "description": "",
+        "resolutionDate": "2024-05-17T12:00:00Z",
+        "outcome": "NO",
+        "finalProbability": "0"
+      },
+      "matchedStocks": [
+        {
+          "ticker": "MSFT",
+          "companyName": "OpenAI",
+          "priceOnResolution": 420.21,
+          "resolutionDate": "2024-05-17T12:00:00Z"
+        }
+      ],
+      "matchReason": "Title contains \"OpenAI\""
+    },
+    {
+      "event": {
         "eventId": "10627",
         "title": "Bieber Baby: Boy or Girl?",
         "slug": "bieber-baby-boy-or-girl",
@@ -617,49 +569,49 @@
     },
     {
       "event": {
-        "eventId": "10639",
-        "title": "$GME all time high by Friday?",
-        "slug": "gme-all-time-high-by-friday",
+        "eventId": "10638",
+        "title": "Will Roaring Kitty tweet about GameStop today?",
+        "slug": "will-theroaringkitty-tweet-about-gamestop-today",
         "description": "",
-        "resolutionDate": "2024-05-17T12:00:00Z",
+        "resolutionDate": "2024-05-13T12:00:00Z",
         "outcome": "NO",
         "finalProbability": "0"
       },
       "matchedStocks": [
         {
-          "ticker": "GM",
-          "companyName": "GM",
-          "priceOnResolution": 45.76,
-          "resolutionDate": "2024-05-17T12:00:00Z"
+          "ticker": "GME",
+          "companyName": "GameStop",
+          "priceOnResolution": 30.45,
+          "resolutionDate": "2024-05-13T12:00:00Z"
         }
       ],
-      "matchReason": "Title contains \"GM\""
+      "matchReason": "Title contains \"GameStop\""
     },
     {
       "event": {
-        "eventId": "10640",
-        "title": "# GME trading halts today?",
-        "slug": "number-gme-trading-halts-today",
-        "description": "qqqqqq",
-        "resolutionDate": "2024-05-13T12:00:00Z",
+        "eventId": "10642",
+        "title": "Roaring Kitty tweets a company ticker/name by Friday?",
+        "slug": "will-theroaringkitty-tweet-a-company-tickername-by-friday",
+        "description": "",
+        "resolutionDate": "2024-05-17T12:00:00Z",
         "outcome": "YES",
         "finalProbability": "1"
       },
       "matchedStocks": [
         {
-          "ticker": "GM",
-          "companyName": "GM",
-          "priceOnResolution": 45.17,
-          "resolutionDate": "2024-05-13T12:00:00Z"
+          "ticker": "GME",
+          "companyName": "Roaring Kitty",
+          "priceOnResolution": 22.21,
+          "resolutionDate": "2024-05-17T12:00:00Z"
         }
       ],
-      "matchReason": "Title contains \"GM\""
+      "matchReason": "Title contains \"Roaring Kitty\""
     },
     {
       "event": {
-        "eventId": "10641",
-        "title": "$GME halted on Tuesday?",
-        "slug": "gme-halted-on-tuesday",
+        "eventId": "10643",
+        "title": "Will Roaring Kitty tweet on Tuesday?",
+        "slug": "will-roaring-kitty-tweet-again-on-tuesday",
         "description": "",
         "resolutionDate": "2024-05-14T12:00:00Z",
         "outcome": "YES",
@@ -667,33 +619,53 @@
       },
       "matchedStocks": [
         {
-          "ticker": "GM",
-          "companyName": "GM",
-          "priceOnResolution": 45.03,
+          "ticker": "GME",
+          "companyName": "Roaring Kitty",
+          "priceOnResolution": 48.75,
           "resolutionDate": "2024-05-14T12:00:00Z"
         }
       ],
-      "matchReason": "Title contains \"GM\""
+      "matchReason": "Title contains \"Roaring Kitty\""
     },
     {
       "event": {
-        "eventId": "10647",
-        "title": "$GME market cap on May 17",
-        "slug": "gme-market-cap-on-may-17",
-        "description": "asd",
+        "eventId": "10645",
+        "title": "DeepFuckingValue posts on Reddit by Friday?",
+        "slug": "will-deepfuckingvalue-post-again-by-friday",
+        "description": "",
         "resolutionDate": "2024-05-17T12:00:00Z",
         "outcome": "NO",
         "finalProbability": "0"
       },
       "matchedStocks": [
         {
-          "ticker": "GM",
-          "companyName": "GM",
-          "priceOnResolution": 45.76,
+          "ticker": "RDDT",
+          "companyName": "Reddit",
+          "priceOnResolution": 62.04,
           "resolutionDate": "2024-05-17T12:00:00Z"
         }
       ],
-      "matchReason": "Title contains \"GM\""
+      "matchReason": "Title contains \"Reddit\""
+    },
+    {
+      "event": {
+        "eventId": "10646",
+        "title": "# of Roaring Kitty tweets by May 17?",
+        "slug": "of-roaring-kitty-tweets-by-may-17",
+        "description": "qqqqqqqqqqqqqq",
+        "resolutionDate": "2024-05-17T12:00:00Z",
+        "outcome": "NO",
+        "finalProbability": "0"
+      },
+      "matchedStocks": [
+        {
+          "ticker": "GME",
+          "companyName": "Roaring Kitty",
+          "priceOnResolution": 22.21,
+          "resolutionDate": "2024-05-17T12:00:00Z"
+        }
+      ],
+      "matchReason": "Title contains \"Roaring Kitty\""
     },
     {
       "event": {
@@ -711,49 +683,35 @@
           "companyName": "Apple",
           "priceOnResolution": 189.87,
           "resolutionDate": "2024-05-17T12:00:00Z"
-        }
-      ],
-      "matchReason": "Title contains \"Apple\""
-    },
-    {
-      "event": {
-        "eventId": "10660",
-        "title": "$GME halted on Wednesday?",
-        "slug": "gme-halted-on-wednesday",
-        "description": "",
-        "resolutionDate": "2024-05-15T12:00:00Z",
-        "outcome": "YES",
-        "finalProbability": "1"
-      },
-      "matchedStocks": [
+        },
         {
-          "ticker": "GM",
-          "companyName": "GM",
-          "priceOnResolution": 45.49,
-          "resolutionDate": "2024-05-15T12:00:00Z"
+          "ticker": "MSFT",
+          "companyName": "OpenAI",
+          "priceOnResolution": 420.21,
+          "resolutionDate": "2024-05-17T12:00:00Z"
         }
       ],
-      "matchReason": "Title contains \"GM\""
+      "matchReason": "Title contains \"Apple\"; Title contains \"OpenAI\""
     },
     {
       "event": {
-        "eventId": "10674",
-        "title": "$GME halted on Friday?",
-        "slug": "gme-halted-on-friday",
+        "eventId": "10673",
+        "title": "Did Keith Gill (RoaringKitty) sell his X account?",
+        "slug": "did-keith-gill-roaringkitty-sell-his-x-account",
         "description": "",
-        "resolutionDate": "2024-05-17T12:00:00Z",
+        "resolutionDate": "2024-05-31T12:00:00Z",
         "outcome": "NO",
         "finalProbability": "0"
       },
       "matchedStocks": [
         {
-          "ticker": "GM",
-          "companyName": "GM",
-          "priceOnResolution": 45.76,
-          "resolutionDate": "2024-05-17T12:00:00Z"
+          "ticker": "GME",
+          "companyName": "Keith Gill",
+          "priceOnResolution": 23.14,
+          "resolutionDate": "2024-05-31T12:00:00Z"
         }
       ],
-      "matchReason": "Title contains \"GM\""
+      "matchReason": "Title contains \"Keith Gill\""
     },
     {
       "event": {
@@ -797,43 +755,43 @@
     },
     {
       "event": {
-        "eventId": "10696",
-        "title": "Will Russia capture Chasiv Yar before October?",
-        "slug": "will-russia-capture-chasiv-yar-before-october",
-        "description": "This market will resolve to “Yes” if, according to the ISW map, Russia captures the Chasiv Yar railroad station located on Pryvokazlna Vulytsia by September 30, 2024 at 11:59 PM ET.\n\nThe railroad station will be considered captured if any part of the train station is shaded red on the ISW map (https://storymaps.arcgis.com/stories/36a7f6a6f5a9448496de641cf64bd375) by the resolution date. If the area is not shaded red by September 30, 2024, 11:59 PM ET, the market will resolve to “No”.\n\nOnce Russia captures the railroad station, any subsequent loss of control will not be considered towards the resolution of this market.\n\nTrain Station Location: https://polymarket-upload.s3.us-east-2.amazonaws.com/Chasiv+Yar+Train+Station.png\n\nChasiv Yar Location: https://polymarket-upload.s3.us-east-2.amazonaws.com/Chasiv+Yar+Ukraine+Location.png\n\nThe primary resolution source for this market will be the ISW Ukraine map. If the ISW map is rendered unavailable, information from DeepStateMap (https://deepstatemap.live/) may be used. If information from both the ISW and DeepStateMap are rendered permanently unavailable, a consensus of credible reporting may be used.",
-        "resolutionDate": "2024-09-30T12:00:00Z",
-        "outcome": "NO",
-        "finalProbability": "0"
+        "eventId": "10722",
+        "title": "OpenAI apologizes to Scarlett Johansson by Friday?",
+        "slug": "will-sam-altman-apologize-to-scarlett-johansson-by-friday",
+        "description": "",
+        "resolutionDate": "2024-05-24T12:00:00Z",
+        "outcome": "YES",
+        "finalProbability": "1"
       },
       "matchedStocks": [
         {
-          "ticker": "AMZN",
-          "companyName": "Amazon",
-          "priceOnResolution": 186.33,
-          "resolutionDate": "2024-09-30T12:00:00Z"
+          "ticker": "MSFT",
+          "companyName": "OpenAI",
+          "priceOnResolution": 430.16,
+          "resolutionDate": "2024-05-24T12:00:00Z"
         }
       ],
-      "matchReason": "Description contains \"Amazon\""
+      "matchReason": "Title contains \"OpenAI\""
     },
     {
       "event": {
-        "eventId": "10714",
-        "title": "NBA",
-        "slug": "nba-dailies-2024-05-22",
-        "description": "https://polymarket-upload.s3.us-east-2.amazonaws.com/nba-dailies-2024-21-05-OJV-7H0Ld6_-.jpg",
-        "resolutionDate": "2024-05-22T12:00:00Z",
+        "eventId": "10727",
+        "title": "Scarlett Johansson sues OpenAI in May?",
+        "slug": "scarlett-johansson-sues-openai-in-may",
+        "description": "",
+        "resolutionDate": "2024-05-31T12:00:00Z",
         "outcome": "NO",
         "finalProbability": "0"
       },
       "matchedStocks": [
         {
-          "ticker": "AMZN",
-          "companyName": "Amazon",
-          "priceOnResolution": 183.13,
-          "resolutionDate": "2024-05-22T12:00:00Z"
+          "ticker": "MSFT",
+          "companyName": "OpenAI",
+          "priceOnResolution": 415.13,
+          "resolutionDate": "2024-05-31T12:00:00Z"
         }
       ],
-      "matchReason": "Description contains \"Amazon\""
+      "matchReason": "Title contains \"OpenAI\""
     }
   ]
 }

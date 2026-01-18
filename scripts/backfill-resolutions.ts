@@ -51,55 +51,312 @@ interface BackfillData {
 
 // ============ Company Name Mappings ============
 
-// Exact company names to match in event titles
-const COMPANY_MAPPINGS: Record<string, { ticker: string; names: string[] }> = {
-  AAPL: { ticker: 'AAPL', names: ['Apple', 'iPhone', 'iPad', 'MacBook', 'Tim Cook'] },
-  MSFT: { ticker: 'MSFT', names: ['Microsoft', 'Azure', 'Windows', 'Satya Nadella'] },
-  GOOGL: { ticker: 'GOOGL', names: ['Google', 'Alphabet', 'YouTube', 'Sundar Pichai'] },
-  META: { ticker: 'META', names: ['Meta', 'Facebook', 'Instagram', 'WhatsApp', 'Mark Zuckerberg', 'Zuckerberg'] },
-  AMZN: { ticker: 'AMZN', names: ['Amazon', 'AWS', 'Jeff Bezos', 'Andy Jassy'] },
-  TSLA: { ticker: 'TSLA', names: ['Tesla', 'Elon Musk', 'Cybertruck', 'SpaceX'] },
-  NVDA: { ticker: 'NVDA', names: ['Nvidia', 'NVIDIA', 'Jensen Huang'] },
-  AMD: { ticker: 'AMD', names: ['AMD', 'Lisa Su'] },
-  INTC: { ticker: 'INTC', names: ['Intel', 'Pat Gelsinger'] },
-  NFLX: { ticker: 'NFLX', names: ['Netflix'] },
-  DIS: { ticker: 'DIS', names: ['Disney', 'Bob Iger'] },
-  COIN: { ticker: 'COIN', names: ['Coinbase'] },
-  JPM: { ticker: 'JPM', names: ['JPMorgan', 'Jamie Dimon'] },
-  GS: { ticker: 'GS', names: ['Goldman Sachs'] },
-  BA: { ticker: 'BA', names: ['Boeing'] },
-  XOM: { ticker: 'XOM', names: ['Exxon', 'ExxonMobil'] },
-  CVX: { ticker: 'CVX', names: ['Chevron'] },
-  PFE: { ticker: 'PFE', names: ['Pfizer'] },
-  JNJ: { ticker: 'JNJ', names: ['Johnson & Johnson', 'Johnson and Johnson'] },
-  WMT: { ticker: 'WMT', names: ['Walmart'] },
-  TGT: { ticker: 'TGT', names: ['Target'] },
-  COST: { ticker: 'COST', names: ['Costco'] },
-  NKE: { ticker: 'NKE', names: ['Nike'] },
-  SBUX: { ticker: 'SBUX', names: ['Starbucks'] },
-  MCD: { ticker: 'MCD', names: ['McDonald\'s', 'McDonalds'] },
-  CRM: { ticker: 'CRM', names: ['Salesforce', 'Marc Benioff'] },
-  ORCL: { ticker: 'ORCL', names: ['Oracle', 'Larry Ellison'] },
-  IBM: { ticker: 'IBM', names: ['IBM'] },
-  UBER: { ticker: 'UBER', names: ['Uber'] },
-  LYFT: { ticker: 'LYFT', names: ['Lyft'] },
-  ABNB: { ticker: 'ABNB', names: ['Airbnb'] },
-  SNAP: { ticker: 'SNAP', names: ['Snapchat', 'Snap'] },
+// Words to EXCLUDE from matching (they cause false positives)
+const EXCLUDED_WORDS = new Set([
+  'intelligence', // Don't match "Intel" in "intelligence"
+  'block', // Don't match "Block" in "blocked" or "blockchain"
+  'target', // Don't match "Target" in "targeting"
+  'ford', // Don't match "Ford" in "afford", "Stanford"
+  'snap', // Don't match "Snap" in "snapshot"
+  'zoom', // Don't match "Zoom" in "zooming"
+  'meta', // Don't match "Meta" in "metadata", "metamorphosis"
+  'oracle', // Don't match "Oracle" in non-company context
+]);
+
+// Function to check if match is a false positive
+function isValidMatch(text: string, matchWord: string, startIndex: number): boolean {
+  const textLower = text.toLowerCase();
+  const matchLower = matchWord.toLowerCase();
+  
+  // Check surrounding characters - we want word boundaries
+  const charBefore = startIndex > 0 ? textLower[startIndex - 1] : ' ';
+  const charAfter = startIndex + matchLower.length < textLower.length 
+    ? textLower[startIndex + matchLower.length] 
+    : ' ';
+  
+  // Must be word boundaries (not part of a larger word)
+  const isWordBoundaryBefore = !/[a-z]/.test(charBefore);
+  const isWordBoundaryAfter = !/[a-z]/.test(charAfter);
+  
+  if (!isWordBoundaryBefore || !isWordBoundaryAfter) {
+    return false;
+  }
+  
+  // Check for known false positive patterns
+  const surroundingText = textLower.slice(
+    Math.max(0, startIndex - 20), 
+    Math.min(textLower.length, startIndex + matchLower.length + 20)
+  );
+  
+  // False positive checks
+  if (matchLower === 'intel' && surroundingText.includes('intelligence')) return false;
+  if (matchLower === 'block' && (surroundingText.includes('blocked') || surroundingText.includes('blockchain'))) return false;
+  if (matchLower === 'ford' && (surroundingText.includes('afford') || surroundingText.includes('stanford'))) return false;
+  if (matchLower === 'meta' && surroundingText.includes('metadata')) return false;
+  
+  return true;
+}
+
+// Expanded company mappings with aliases, products, executives, and keywords
+const COMPANY_MAPPINGS: Record<string, { ticker: string; names: string[]; exactOnly?: string[] }> = {
+  // ============ MEGA CAP TECH ============
+  AAPL: { 
+    ticker: 'AAPL', 
+    names: [
+      'Apple', 'iPhone', 'iPad', 'MacBook', 'Apple Watch', 'AirPods', 'Vision Pro',
+      'Tim Cook', 'App Store', 'iOS', 'macOS', 'Apple TV', 'Apple Music', 'iCloud',
+      'Siri', 'Apple Silicon', 'M1', 'M2', 'M3', 'M4'
+    ] 
+  },
+  MSFT: { 
+    ticker: 'MSFT', 
+    names: [
+      'Microsoft', 'Azure', 'Windows', 'Satya Nadella', 'Xbox', 'Office 365',
+      'LinkedIn', 'GitHub', 'Bing', 'Copilot', 'Surface', 'Activision',
+      'OpenAI' // Microsoft's major investment
+    ],
+    exactOnly: ['Microsoft Teams'] // Don't match "Teams" alone (could be sports)
+  },
+  GOOGL: { 
+    ticker: 'GOOGL', 
+    names: [
+      'Google', 'Alphabet', 'YouTube', 'Sundar Pichai', 'Android', 'Chrome',
+      'Pixel', 'Waymo', 'DeepMind', 'Google Cloud', 'Gmail', 'Google Maps',
+      'Google Search', 'Bard', 'Google Play'
+    ],
+    exactOnly: ['Google Gemini'] // Don't match "Gemini" alone (could be crypto exchange)
+  },
+  META: { 
+    ticker: 'META', 
+    names: [
+      'Facebook', 'Instagram', 'WhatsApp', 'Mark Zuckerberg', 'Zuckerberg',
+      'Threads', 'Oculus', 'Quest', 'Reality Labs', 'Messenger', 'Metaverse'
+    ],
+    exactOnly: ['Meta'] // Only match "Meta" as a standalone word
+  },
+  AMZN: { 
+    ticker: 'AMZN', 
+    names: [
+      'Amazon', 'AWS', 'Jeff Bezos', 'Andy Jassy', 'Alexa', 'Echo',
+      'Kindle', 'Whole Foods', 'Amazon Web Services', 'Ring', 'Twitch', 'MGM',
+      'Amazon Prime', 'Blue Origin', 'Prime Video', 'Prime Day'
+    ],
+    exactOnly: ['Amazon Prime'] // Don't match "Prime" alone (could be Prime Minister)
+  },
+  
+  // ============ AI & CHIPS ============
+  NVDA: { 
+    ticker: 'NVDA', 
+    names: [
+      'Nvidia', 'NVIDIA', 'Jensen Huang', 'GeForce', 'RTX', 'CUDA', 'A100', 'H100',
+      'Blackwell', 'Grace Hopper', 'DGX', 'Mellanox'
+    ] 
+  },
+  AMD: { 
+    ticker: 'AMD', 
+    names: [
+      'AMD', 'Lisa Su', 'Ryzen', 'Radeon', 'EPYC', 'Xilinx', 'Instinct', 'ROCm'
+    ] 
+  },
+  INTC: { 
+    ticker: 'INTC', 
+    names: [
+      'Pat Gelsinger', 'Core i', 'Xeon', 'Altera', 'Mobileye'
+    ],
+    exactOnly: ['Intel'] // Be careful with "Intel" - require word boundary
+  },
+  ARM: { ticker: 'ARM', names: ['ARM Holdings', 'Arm Holdings', 'ARM chips'] },
+  AVGO: { ticker: 'AVGO', names: ['Broadcom', 'VMware'] },
+  QCOM: { ticker: 'QCOM', names: ['Qualcomm', 'Snapdragon'] },
+  TSM: { ticker: 'TSM', names: ['TSMC', 'Taiwan Semiconductor'] },
+  ASML: { ticker: 'ASML', names: ['ASML'] },
+  MU: { ticker: 'MU', names: ['Micron'] },
+  
+  // ============ ELECTRIC VEHICLES & ENERGY ============
+  TSLA: { 
+    ticker: 'TSLA', 
+    names: [
+      'Tesla', 'Elon Musk', 'Cybertruck', 'Model S', 'Model 3', 'Model X', 'Model Y',
+      'Supercharger', 'Powerwall', 'Megapack', 'Full Self-Driving', 'FSD',
+      'Autopilot', 'Gigafactory', 'SpaceX', 'Starlink', 'Neuralink', 'xAI'
+    ] 
+  },
+  RIVN: { ticker: 'RIVN', names: ['Rivian', 'R1T', 'R1S'] },
+  LCID: { ticker: 'LCID', names: ['Lucid', 'Lucid Air', 'Lucid Motors'] },
+  NIO: { ticker: 'NIO', names: ['NIO', 'Nio'] },
+  XPEV: { ticker: 'XPEV', names: ['XPeng', 'Xpeng'] },
+  LI: { ticker: 'LI', names: ['Li Auto'] },
+  FSR: { ticker: 'FSR', names: ['Fisker'] },
+  F: { 
+    ticker: 'F', 
+    names: ['Ford Motor', 'Ford F-150', 'Mustang Mach-E', 'Jim Farley'],
+    exactOnly: ['Ford']
+  },
+  GM: { ticker: 'GM', names: ['General Motors', 'Chevy', 'Chevrolet', 'Cadillac', 'GMC', 'Mary Barra'] },
+  
+  // ============ CRYPTO & FINTECH ============
+  COIN: { 
+    ticker: 'COIN', 
+    names: [
+      'Coinbase', 'Brian Armstrong'
+    ] 
+  },
+  MSTR: { ticker: 'MSTR', names: ['MicroStrategy', 'Michael Saylor', 'Saylor'] },
+  MARA: { ticker: 'MARA', names: ['Marathon Digital', 'Marathon Holdings'] },
+  RIOT: { ticker: 'RIOT', names: ['Riot Platforms', 'Riot Blockchain'] },
+  HOOD: { ticker: 'HOOD', names: ['Robinhood', 'Vlad Tenev'] },
+  SQ: { 
+    ticker: 'SQ', 
+    names: ['Square', 'Cash App', 'Jack Dorsey'],
+    exactOnly: ['Block']
+  },
+  PYPL: { ticker: 'PYPL', names: ['PayPal', 'Venmo'] },
+  AFRM: { ticker: 'AFRM', names: ['Affirm', 'Max Levchin'] },
+  SOFI: { ticker: 'SOFI', names: ['SoFi', 'Social Finance'] },
+  NU: { ticker: 'NU', names: ['Nubank', 'Nu Holdings'] },
+  
+  // ============ SOCIAL MEDIA & ENTERTAINMENT ============
+  NFLX: { ticker: 'NFLX', names: ['Netflix', 'Reed Hastings', 'Ted Sarandos'] },
+  DIS: { ticker: 'DIS', names: ['Disney', 'Bob Iger', 'Pixar', 'Marvel', 'Star Wars', 'Hulu', 'ESPN', 'Disney+'] },
+  SNAP: { 
+    ticker: 'SNAP', 
+    names: ['Snapchat', 'Evan Spiegel'],
+    exactOnly: ['Snap Inc']
+  },
   TWTR: { ticker: 'TWTR', names: ['Twitter'] },
-  X: { ticker: 'X', names: ['Twitter', 'X Corp'] },
-  SPOT: { ticker: 'SPOT', names: ['Spotify'] },
-  PYPL: { ticker: 'PYPL', names: ['PayPal'] },
-  SQ: { ticker: 'SQ', names: ['Square', 'Block'] },
-  SHOP: { ticker: 'SHOP', names: ['Shopify'] },
-  ZM: { ticker: 'ZM', names: ['Zoom'] },
-  ROKU: { ticker: 'ROKU', names: ['Roku'] },
-  LMT: { ticker: 'LMT', names: ['Lockheed Martin', 'Lockheed'] },
-  RTX: { ticker: 'RTX', names: ['Raytheon'] },
-  NOC: { ticker: 'NOC', names: ['Northrop Grumman'] },
-  F: { ticker: 'F', names: ['Ford'] },
-  GM: { ticker: 'GM', names: ['General Motors', 'GM'] },
-  RIVN: { ticker: 'RIVN', names: ['Rivian'] },
-  LCID: { ticker: 'LCID', names: ['Lucid'] },
+  X: { ticker: 'X', names: ['X Corp', 'Twitter/X'] },
+  PINS: { ticker: 'PINS', names: ['Pinterest'] },
+  RDDT: { ticker: 'RDDT', names: ['Reddit'] },
+  SPOT: { ticker: 'SPOT', names: ['Spotify', 'Daniel Ek'] },
+  RBLX: { ticker: 'RBLX', names: ['Roblox'] },
+  TTWO: { ticker: 'TTWO', names: ['Take-Two', 'Rockstar Games', 'GTA', 'Grand Theft Auto'] },
+  EA: { ticker: 'EA', names: ['Electronic Arts', 'EA Sports', 'FIFA', 'Madden'] },
+  ATVI: { ticker: 'ATVI', names: ['Activision', 'Blizzard', 'Call of Duty', 'World of Warcraft'] },
+  SONY: { ticker: 'SONY', names: ['Sony', 'PlayStation', 'PS5'] },
+  
+  // ============ CLOUD & ENTERPRISE SOFTWARE ============
+  CRM: { ticker: 'CRM', names: ['Salesforce', 'Marc Benioff', 'Slack'] },
+  ORCL: { 
+    ticker: 'ORCL', 
+    names: ['Larry Ellison', 'Oracle Cloud'],
+    exactOnly: ['Oracle']
+  },
+  NOW: { ticker: 'NOW', names: ['ServiceNow'] },
+  SNOW: { ticker: 'SNOW', names: ['Snowflake'] },
+  DDOG: { ticker: 'DDOG', names: ['Datadog'] },
+  NET: { ticker: 'NET', names: ['Cloudflare'] },
+  ZS: { ticker: 'ZS', names: ['Zscaler'] },
+  CRWD: { ticker: 'CRWD', names: ['CrowdStrike', 'George Kurtz'] },
+  PANW: { ticker: 'PANW', names: ['Palo Alto Networks'] },
+  OKTA: { ticker: 'OKTA', names: ['Okta'] },
+  MDB: { ticker: 'MDB', names: ['MongoDB'] },
+  PLTR: { ticker: 'PLTR', names: ['Palantir', 'Peter Thiel', 'Alex Karp'] },
+  ZM: { 
+    ticker: 'ZM', 
+    names: ['Zoom Video', 'Eric Yuan'],
+    exactOnly: ['Zoom']
+  },
+  DOCU: { ticker: 'DOCU', names: ['DocuSign'] },
+  TWLO: { ticker: 'TWLO', names: ['Twilio'] },
+  U: { ticker: 'U', names: ['Unity Software', 'Unity Engine'] },
+  
+  // ============ E-COMMERCE & RETAIL ============
+  SHOP: { ticker: 'SHOP', names: ['Shopify', 'Tobi Lutke'] },
+  BABA: { ticker: 'BABA', names: ['Alibaba', 'Jack Ma', 'Taobao', 'Tmall', 'AliExpress'] },
+  JD: { ticker: 'JD', names: ['JD.com', 'JingDong'] },
+  PDD: { ticker: 'PDD', names: ['Pinduoduo', 'Temu'] },
+  MELI: { ticker: 'MELI', names: ['MercadoLibre', 'Mercado Libre'] },
+  SE: { ticker: 'SE', names: ['Sea Limited', 'Shopee', 'Garena'] },
+  WMT: { ticker: 'WMT', names: ['Walmart', 'Doug McMillon'] },
+  TGT: { 
+    ticker: 'TGT', 
+    names: ['Target Corporation'],
+    exactOnly: ['Target']
+  },
+  COST: { ticker: 'COST', names: ['Costco'] },
+  HD: { ticker: 'HD', names: ['Home Depot'] },
+  LOW: { ticker: 'LOW', names: ["Lowe's", 'Lowes'] },
+  ABNB: { ticker: 'ABNB', names: ['Airbnb', 'Brian Chesky'] },
+  BKNG: { ticker: 'BKNG', names: ['Booking.com', 'Booking Holdings', 'Priceline'] },
+  UBER: { ticker: 'UBER', names: ['Uber', 'Dara Khosrowshahi', 'Uber Eats'] },
+  LYFT: { ticker: 'LYFT', names: ['Lyft'] },
+  DASH: { ticker: 'DASH', names: ['DoorDash', 'Tony Xu'] },
+  
+  // ============ AEROSPACE & DEFENSE ============
+  BA: { ticker: 'BA', names: ['Boeing', 'Dave Calhoun', '737 MAX', '787 Dreamliner'] },
+  LMT: { ticker: 'LMT', names: ['Lockheed Martin', 'Lockheed', 'F-35', 'F-22'] },
+  RTX: { ticker: 'RTX', names: ['Raytheon', 'RTX Corporation', 'Pratt & Whitney'] },
+  NOC: { ticker: 'NOC', names: ['Northrop Grumman', 'B-21 Raider'] },
+  GD: { ticker: 'GD', names: ['General Dynamics', 'Gulfstream'] },
+  
+  // ============ FINANCE & BANKING ============
+  JPM: { ticker: 'JPM', names: ['JPMorgan', 'JP Morgan', 'Jamie Dimon', 'Chase'] },
+  GS: { ticker: 'GS', names: ['Goldman Sachs', 'David Solomon'] },
+  MS: { ticker: 'MS', names: ['Morgan Stanley', 'James Gorman'] },
+  BAC: { ticker: 'BAC', names: ['Bank of America', 'BofA', 'Brian Moynihan'] },
+  C: { ticker: 'C', names: ['Citigroup', 'Citi', 'Citibank', 'Jane Fraser'] },
+  WFC: { ticker: 'WFC', names: ['Wells Fargo', 'Charlie Scharf'] },
+  BRK: { ticker: 'BRK.B', names: ['Berkshire Hathaway', 'Warren Buffett', 'Buffett', 'Charlie Munger'] },
+  V: { ticker: 'V', names: ['Visa'] },
+  MA: { ticker: 'MA', names: ['Mastercard'] },
+  AXP: { ticker: 'AXP', names: ['American Express', 'Amex'] },
+  BLK: { ticker: 'BLK', names: ['BlackRock', 'Larry Fink'] },
+  
+  // ============ HEALTHCARE & PHARMA ============
+  PFE: { ticker: 'PFE', names: ['Pfizer', 'Albert Bourla'] },
+  MRNA: { ticker: 'MRNA', names: ['Moderna', 'Stéphane Bancel'] },
+  BNTX: { ticker: 'BNTX', names: ['BioNTech'] },
+  JNJ: { ticker: 'JNJ', names: ['Johnson & Johnson', 'Johnson and Johnson', 'J&J'] },
+  UNH: { ticker: 'UNH', names: ['UnitedHealth', 'United Healthcare'] },
+  LLY: { ticker: 'LLY', names: ['Eli Lilly', 'Mounjaro', 'Zepbound'] },
+  NVO: { ticker: 'NVO', names: ['Novo Nordisk', 'Ozempic', 'Wegovy'] },
+  ABBV: { ticker: 'ABBV', names: ['AbbVie', 'Humira'] },
+  MRK: { ticker: 'MRK', names: ['Merck', 'Keytruda'] },
+  BMY: { ticker: 'BMY', names: ['Bristol-Myers Squibb', 'Bristol Myers'] },
+  
+  // ============ ENERGY ============
+  XOM: { ticker: 'XOM', names: ['Exxon', 'ExxonMobil', 'Exxon Mobil'] },
+  CVX: { ticker: 'CVX', names: ['Chevron'] },
+  COP: { ticker: 'COP', names: ['ConocoPhillips'] },
+  OXY: { ticker: 'OXY', names: ['Occidental Petroleum', 'Occidental'] },
+  SLB: { ticker: 'SLB', names: ['Schlumberger'] },
+  
+  // ============ CONSUMER BRANDS ============
+  KO: { ticker: 'KO', names: ['Coca-Cola', 'Coca Cola', 'Coke'] },
+  PEP: { ticker: 'PEP', names: ['Pepsi', 'PepsiCo', 'Frito-Lay', 'Gatorade'] },
+  NKE: { ticker: 'NKE', names: ['Nike', 'Jordan Brand', 'Phil Knight'] },
+  SBUX: { ticker: 'SBUX', names: ['Starbucks', 'Howard Schultz'] },
+  MCD: { ticker: 'MCD', names: ["McDonald's", 'McDonalds', 'Big Mac'] },
+  CMG: { ticker: 'CMG', names: ['Chipotle', 'Chipotle Mexican Grill'] },
+  LULU: { ticker: 'LULU', names: ['Lululemon'] },
+  
+  // ============ TELECOM ============
+  T: { ticker: 'T', names: ['AT&T', 'ATT'] },
+  VZ: { ticker: 'VZ', names: ['Verizon'] },
+  TMUS: { ticker: 'TMUS', names: ['T-Mobile', 'TMobile'] },
+  
+  // ============ AI COMPANIES ============
+  AI: { ticker: 'AI', names: ['C3.ai', 'C3 AI'] },
+  UPST: { ticker: 'UPST', names: ['Upstart'] },
+  PATH: { ticker: 'PATH', names: ['UiPath'] },
+  
+  // ============ MISC TECH ============
+  IBM: { ticker: 'IBM', names: ['IBM', 'Arvind Krishna', 'Red Hat'] },
+  HPQ: { ticker: 'HPQ', names: ['HP', 'Hewlett-Packard'] },
+  DELL: { ticker: 'DELL', names: ['Dell', 'Michael Dell'] },
+  ROKU: { ticker: 'ROKU', names: ['Roku', 'Anthony Wood'] },
+  
+  // ============ CHINA TECH ============
+  BIDU: { ticker: 'BIDU', names: ['Baidu', 'Robin Li'] },
+  NTES: { ticker: 'NTES', names: ['NetEase'] },
+  TME: { ticker: 'TME', names: ['Tencent Music'] },
+  BILI: { ticker: 'BILI', names: ['Bilibili'] },
+  DIDI: { ticker: 'DIDI', names: ['DiDi', 'Didi Global', 'Didi Chuxing'] },
+  
+  // ============ SPECIAL / MEME STOCKS ============
+  GME: { ticker: 'GME', names: ['GameStop', 'Ryan Cohen', 'Roaring Kitty', 'Keith Gill'] },
+  AMC: { ticker: 'AMC', names: ['AMC Entertainment', 'Adam Aron', 'AMC Theatres'] },
+  BBBY: { ticker: 'BBBY', names: ['Bed Bath & Beyond', 'Bed Bath and Beyond'] },
 };
 
 // ============ Polymarket API ============
@@ -244,31 +501,77 @@ async function fetchResolvedEvents(yearsBack: number = 3): Promise<ResolvedEvent
 
 function matchEventToStocks(event: ResolvedEvent): { ticker: string; companyName: string; matchReason: string }[] {
   const matches: { ticker: string; companyName: string; matchReason: string }[] = [];
-  const titleLower = event.title.toLowerCase();
-  const descLower = (event.description || '').toLowerCase();
+  const title = event.title || '';
+  const desc = event.description || '';
+  const titleLower = title.toLowerCase();
+  const descLower = desc.toLowerCase();
   
-  for (const [ticker, { names }] of Object.entries(COMPANY_MAPPINGS)) {
-    for (const name of names) {
-      const nameLower = name.toLowerCase();
-      
-      // Check title first (stronger match)
-      if (titleLower.includes(nameLower)) {
-        matches.push({
-          ticker,
-          companyName: name,
-          matchReason: `Title contains "${name}"`,
-        });
-        break; // One match per company is enough
+  for (const [ticker, mapping] of Object.entries(COMPANY_MAPPINGS)) {
+    const { names, exactOnly } = mapping;
+    let matched = false;
+    
+    // First check exactOnly patterns (require word boundaries)
+    if (exactOnly && exactOnly.length > 0) {
+      for (const exactWord of exactOnly) {
+        const exactLower = exactWord.toLowerCase();
+        
+        // Check title
+        const titleIdx = titleLower.indexOf(exactLower);
+        if (titleIdx !== -1 && isValidMatch(title, exactWord, titleIdx)) {
+          matches.push({
+            ticker,
+            companyName: exactWord,
+            matchReason: `Title contains "${exactWord}"`,
+          });
+          matched = true;
+          break;
+        }
+        
+        // Check description
+        const descIdx = descLower.indexOf(exactLower);
+        if (descIdx !== -1 && isValidMatch(desc, exactWord, descIdx)) {
+          matches.push({
+            ticker,
+            companyName: exactWord,
+            matchReason: `Description contains "${exactWord}"`,
+          });
+          matched = true;
+          break;
+        }
       }
-      
-      // Check description
-      if (descLower.includes(nameLower)) {
-        matches.push({
-          ticker,
-          companyName: name,
-          matchReason: `Description contains "${name}"`,
-        });
-        break;
+    }
+    
+    // Then check regular names (if not already matched)
+    if (!matched) {
+      for (const name of names) {
+        const nameLower = name.toLowerCase();
+        
+        // Skip very short names that might cause false positives
+        if (name.length < 3) continue;
+        
+        // Check title first (stronger match)
+        const titleIdx = titleLower.indexOf(nameLower);
+        if (titleIdx !== -1 && isValidMatch(title, name, titleIdx)) {
+          matches.push({
+            ticker,
+            companyName: name,
+            matchReason: `Title contains "${name}"`,
+          });
+          matched = true;
+          break;
+        }
+        
+        // Check description
+        const descIdx = descLower.indexOf(nameLower);
+        if (descIdx !== -1 && isValidMatch(desc, name, descIdx)) {
+          matches.push({
+            ticker,
+            companyName: name,
+            matchReason: `Description contains "${name}"`,
+          });
+          matched = true;
+          break;
+        }
       }
     }
   }
