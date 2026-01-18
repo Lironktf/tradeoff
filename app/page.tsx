@@ -120,6 +120,11 @@ export default function Home() {
   );
   const [cachedArticles, setCachedArticles] = useState<NewsArticle[]>([]);
 
+  // Scroll to top when switching tabs
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [activePage]);
+
   const handleBetSelect = (bet: HedgeRecommendation | null) => {
     setSelectedBet(bet);
   };
