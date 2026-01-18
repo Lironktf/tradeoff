@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, ReferenceLine } from "recharts";
@@ -14,8 +14,26 @@ interface GreeksViewProps {
 
 export function GreeksView({ recommendations, stockInfo = {}, portfolioValue = 50000 }: GreeksViewProps) {
   const [selectedIdx, setSelectedIdx] = useState(0);
-  const [customShares, setCustomShares] = useState(100);
   const [showEducation, setShowEducation] = useState(true);
+  
+  // Calculate default shares from the recommendation's suggested allocation
+  const getDefaultShares = (rec: HedgeRecommendation): number => {
+    const entryPrice = rec.position === "YES" ? rec.probability : (1 - rec.probability);
+    if (entryPrice <= 0) return 100;
+    // suggestedAllocation is in dollars, divide by entry price to get shares
+    return Math.round(rec.suggestedAllocation / entryPrice);
+  };
+  
+  const [customShares, setCustomShares] = useState(() => 
+    recommendations.length > 0 ? getDefaultShares(recommendations[0]) : 100
+  );
+  
+  // Update shares when selected hedge changes
+  useEffect(() => {
+    if (recommendations.length > 0 && recommendations[selectedIdx]) {
+      setCustomShares(getDefaultShares(recommendations[selectedIdx]));
+    }
+  }, [selectedIdx, recommendations]);
   
   // Calculate days to resolution from endDate
   const calculateDaysToResolution = (endDate?: string): number => {
@@ -30,6 +48,18 @@ export function GreeksView({ recommendations, stockInfo = {}, portfolioValue = 5
     } catch {
       return 30; // Fallback if date parsing fails
     }
+  };
+
+  // Calculate the value of affected stocks for a recommendation
+  const getAffectedStocksValue = (rec: HedgeRecommendation): number => {
+    return rec.affectedStocks.reduce((sum, ticker) => {
+      const info = stockInfo[ticker];
+      if (!info) return sum;
+      // We don't have share counts here, so estimate based on portfolio allocation
+      // Assume equal distribution if we don't have specific data
+      const estimatedValue = portfolioValue / Object.keys(stockInfo).length || 0;
+      return sum + estimatedValue;
+    }, 0);
   };
 
   // No recommendations yet
@@ -83,11 +113,17 @@ export function GreeksView({ recommendations, stockInfo = {}, portfolioValue = 5
   const breakeven = entryPrice * 100;
   const returnOnWin = ((maxProfit / cost) * 100);
 
-  // What % of portfolio does this hedge cost?
-  const hedgeCostPercent = (cost / portfolioValue) * 100;
+  // Calculate value of affected stocks (more relevant than total portfolio)
+  const affectedStocksValue = getAffectedStocksValue(selected);
   
-  // Estimate what % of portfolio loss this could offset
-  const potentialOffset = (maxProfit / portfolioValue) * 100;
+  // What % of affected stocks does this hedge cost?
+  const hedgeCostPercent = affectedStocksValue > 0 ? (cost / affectedStocksValue) * 100 : 0;
+  
+  // Estimate what % of affected stocks loss this could offset
+  const potentialOffset = affectedStocksValue > 0 ? (maxProfit / affectedStocksValue) * 100 : 0;
+  
+  // Format affected stocks list for display
+  const affectedStocksList = selected.affectedStocks.join(", ");
 
   // P&L at different probability outcomes
   const scenarios = [
@@ -176,25 +212,44 @@ export function GreeksView({ recommendations, stockInfo = {}, portfolioValue = 5
       <Card className="bg-[#1c2026] border-[#2d3139]">
         <CardContent className="p-4">
           <p className="text-sm text-[#858687] mb-3">
-            Select a hedge to analyze:
+            Select a hedge to analyze ({recommendations.length} available):
           </p>
-          <div className="flex flex-wrap gap-2">
-            {recommendations.map((rec, idx) => (
-              <button
-                key={idx}
-                onClick={() => setSelectedIdx(idx)}
-                className={`px-3 py-2 rounded-lg text-sm text-left transition-colors ${
-                  selectedIdx === idx
-                    ? "bg-[#3fb950] text-white"
-                    : "bg-[#252932] hover:bg-[#2d3139] text-white"
-                }`}
-              >
-                <span className={`font-medium ${rec.position === "YES" ? "text-[#3fb950]" : "text-[#f85149]"} ${selectedIdx === idx ? "text-white" : ""}`}>
-                  {rec.position}
-                </span>
-                {" "}on {rec.outcome?.slice(0, 25) || rec.market.slice(0, 25)}...
-              </button>
-            ))}
+          <div className="space-y-2 max-h-[240px] overflow-y-auto pr-2">
+            {recommendations.map((rec, idx) => {
+              const isSelected = selectedIdx === idx;
+              const isYes = rec.position === "YES";
+              const selectedBg = isYes ? "bg-[#3fb950] border-[#3fb950]" : "bg-[#f85149] border-[#f85149]";
+              
+              return (
+                <button
+                  key={idx}
+                  onClick={() => setSelectedIdx(idx)}
+                  className={`w-full px-4 py-3 rounded-lg text-sm text-left transition-colors ${
+                    isSelected
+                      ? `${selectedBg} text-white border-2`
+                      : "bg-[#252932] hover:bg-[#2d3139] text-white border border-[#2d3139]"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium line-clamp-2 text-white">
+                        {rec.market}
+                      </p>
+                      <p className={`text-xs mt-1 ${isSelected ? "text-white/80" : "text-[#858687]"}`}>
+                        Hedges: {rec.affectedStocks.join(", ")}
+                      </p>
+                    </div>
+                    <span className={`shrink-0 px-2 py-1 rounded text-xs font-bold ${
+                      isYes 
+                        ? isSelected ? "bg-white/20 text-white" : "bg-[rgba(63,185,80,0.2)] text-[#3fb950]"
+                        : isSelected ? "bg-white/20 text-white" : "bg-[rgba(248,81,73,0.2)] text-[#f85149]"
+                    }`}>
+                      {rec.position}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </CardContent>
       </Card>
@@ -264,9 +319,11 @@ export function GreeksView({ recommendations, stockInfo = {}, portfolioValue = 5
                 <span className="text-[#858687]">Return:</span>
                 <span className="font-mono text-white">{returnOnWin.toFixed(0)}%</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between items-start">
                 <span className="text-[#858687]">Could offset:</span>
-                <span className="font-mono text-white">{potentialOffset.toFixed(1)}% portfolio loss</span>
+                <span className="font-mono text-white text-right">
+                  {potentialOffset.toFixed(1)}% of {affectedStocksList}
+                </span>
               </div>
             </div>
           </CardContent>
@@ -284,8 +341,8 @@ export function GreeksView({ recommendations, stockInfo = {}, portfolioValue = 5
                 <span className="text-[#858687]">Of your bet:</span>
                 <span className="font-mono text-white">100%</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-[#858687]">Of portfolio:</span>
+              <div className="flex justify-between items-start">
+                <span className="text-[#858687]">Of {affectedStocksList}:</span>
                 <span className="font-mono text-white">{hedgeCostPercent.toFixed(2)}%</span>
               </div>
             </div>
