@@ -14,6 +14,7 @@ interface HedgeViewProps {
   setAnalysisResult: React.Dispatch<React.SetStateAction<AnalysisResult | null>>;
   onGoToNews?: () => void;
   onBetSelect?: (bet: HedgeRecommendation | null) => void;
+  isPreloaded?: boolean;
 }
 
 export function HedgeView({
@@ -23,6 +24,7 @@ export function HedgeView({
   setAnalysisResult,
   onGoToNews,
   onBetSelect,
+  isPreloaded = false,
 }: HedgeViewProps) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,13 +57,20 @@ export function HedgeView({
     }
   };
 
-  // Auto-analyze when entering tab with portfolio but no results
+  // Mark as analyzed if preloaded
   useEffect(() => {
-    if (portfolio.length > 0 && !analysisResult && !isAnalyzing && !hasAutoAnalyzed.current) {
+    if (isPreloaded && analysisResult) {
+      hasAutoAnalyzed.current = true;
+    }
+  }, [isPreloaded, analysisResult]);
+
+  // Auto-analyze when entering tab with portfolio but no results (only if not preloaded)
+  useEffect(() => {
+    if (portfolio.length > 0 && !analysisResult && !isAnalyzing && !hasAutoAnalyzed.current && !isPreloaded) {
       hasAutoAnalyzed.current = true;
       handleAnalyze();
     }
-  }, [portfolio.length, analysisResult, isAnalyzing]);
+  }, [portfolio.length, analysisResult, isAnalyzing, isPreloaded]);
 
   // Reset auto-analyze flag when portfolio changes significantly
   useEffect(() => {

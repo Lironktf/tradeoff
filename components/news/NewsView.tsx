@@ -13,6 +13,7 @@ interface NewsViewProps {
   onBetSelect?: (bet: HedgeRecommendation | null) => void;
   cachedArticles?: NewsArticle[];
   onArticlesUpdate?: (articles: NewsArticle[]) => void;
+  isPreloaded?: boolean;
 }
 
 export function NewsView({
@@ -22,6 +23,7 @@ export function NewsView({
   onBetSelect,
   cachedArticles = [],
   onArticlesUpdate,
+  isPreloaded = false,
 }: NewsViewProps) {
   const [articles, setArticles] = useState<NewsArticle[]>(cachedArticles);
   const [isLoading, setIsLoading] = useState(false);
@@ -77,7 +79,14 @@ export function NewsView({
     }
   }, [portfolio, selectedBet, onArticlesUpdate]);
 
-  // Fetch news when portfolio or selectedBet changes
+  // Update articles when cached articles change (from preloading)
+  useEffect(() => {
+    if (cachedArticles.length > 0 && !selectedBet) {
+      setArticles(cachedArticles);
+    }
+  }, [cachedArticles, selectedBet]);
+
+  // Fetch news when portfolio or selectedBet changes (only if not preloaded or bet-specific)
   useEffect(() => {
     if (portfolio.length === 0) {
       setArticles([]);
@@ -90,16 +99,24 @@ export function NewsView({
       return;
     }
 
+    // If preloaded and we have cached articles, use them (don't refetch)
+    if (isPreloaded && cachedArticles.length > 0) {
+      setArticles(cachedArticles);
+      return;
+    }
+
     // If no bet selected and we have cached articles, use them
     if (cachedArticles.length > 0 && !selectedBet) {
       setArticles(cachedArticles);
       return;
     }
 
-    // Otherwise fetch new articles
-    fetchNews();
+    // Otherwise fetch new articles (only if not preloaded)
+    if (!isPreloaded) {
+      fetchNews();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [portfolio.length, selectedBet?.market]); // Fetch when portfolio or selected bet changes
+  }, [portfolio.length, selectedBet?.market, isPreloaded]); // Fetch when portfolio or selected bet changes
 
   const handleBackToList = () => {
     setSelectedArticle(null);

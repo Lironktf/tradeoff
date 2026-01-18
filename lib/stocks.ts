@@ -39,7 +39,10 @@ export async function getStockData(tickers: string[]): Promise<StockData[]> {
         changePercent: price?.regularMarketChangePercent || 0,
       };
     } catch (error) {
-      console.error(`Error fetching data for ${ticker}:`, error);
+      // Only log if it's not a "not found" error (common for invalid tickers)
+      if (error instanceof Error && !error.message.includes("not found")) {
+        console.error(`Error fetching data for ${ticker}:`, error);
+      }
       return {
         ticker: ticker.toUpperCase(),
         name: ticker,

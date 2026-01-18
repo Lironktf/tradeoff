@@ -47,6 +47,36 @@ export interface AnalysisResult {
   };
 }
 
+// Risk analysis result type (matches API response and RiskView component)
+// Using 'any' for alerts to match the API response structure
+export interface RiskAnalysisResult {
+  summary: string;
+  alerts: any[]; // RiskAlert[] from lib/risk-factors, but API may return different structure
+  portfolioStats: {
+    totalValue: number;
+    holdingCount: number;
+    sectorWeights: Record<string, number>;
+    largestPosition: { ticker: string; weight: number };
+  };
+  benchmarkComparison: Array<{
+    metric: string;
+    yourValue: string;
+    typical: string;
+    assessment: "better" | "worse" | "similar";
+  }>;
+  woodWideAnalysis?: {
+    enabled: boolean;
+    anomalies?: Array<{
+      ticker: string;
+      anomalyScore: number;
+      isAnomaly: boolean;
+      reason?: string;
+    }>;
+    error?: string;
+  };
+  analysisTimestamp: string;
+}
+
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabType>("portfolio");
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
@@ -54,6 +84,7 @@ export default function Home() {
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(
     null,
   );
+  const [riskAnalysisResult, setRiskAnalysisResult] = useState<RiskAnalysisResult | null>(null);
   const [selectedBet, setSelectedBet] = useState<HedgeRecommendation | null>(
     null,
   );
@@ -99,6 +130,108 @@ export default function Home() {
     fetchStockData(tickers);
   }, [portfolio, fetchStockData]);
 
+  // Preload all tab data when portfolio is uploaded
+  const preloadAllTabs = useCallback(async () => {
+    if (portfolio.length === 0) return;
+
+    // Check if we already have all data loaded
+    const hasHedges = analysisResult !== null;
+    const hasRisks = riskAnalysisResult !== null;
+    const hasNews = cachedArticles.length > 0;
+
+    // If all data is already loaded, skip
+    if (hasHedges && hasRisks && hasNews) {
+      return;
+    }
+
+    try {
+      // Fetch all data in parallel
+      const promises: Promise<void>[] = [];
+
+      // Fetch hedges if not already loaded
+      if (!hasHedges) {
+        promises.push(
+          fetch("/api/analyze", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ portfolio }),
+          })
+            .then(async (response) => {
+              if (response.ok) {
+                const result = await response.json();
+                setAnalysisResult(result);
+              }
+            })
+            .catch((err) => {
+              console.error("Failed to preload hedges:", err);
+            })
+        );
+      }
+
+      // Fetch risks if not already loaded
+      if (!hasRisks) {
+        promises.push(
+          fetch("/api/risk-analysis", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ portfolio }),
+          })
+            .then(async (response) => {
+              if (response.ok) {
+                const result = await response.json();
+                setRiskAnalysisResult(result);
+              }
+            })
+            .catch((err) => {
+              console.error("Failed to preload risks:", err);
+            })
+        );
+      }
+
+      // Fetch news if not already loaded
+      if (!hasNews) {
+        promises.push(
+          fetch("/api/news", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ portfolio }),
+          })
+            .then(async (response) => {
+              if (response.ok) {
+                const data = await response.json();
+                const articles = data.articles || [];
+                setCachedArticles(articles);
+              }
+            })
+            .catch((err) => {
+              console.error("Failed to preload news:", err);
+            })
+        );
+      }
+
+      // Wait for all to complete (silently in background)
+      await Promise.all(promises);
+    } catch (error) {
+      console.error("Error preloading tabs:", error);
+    }
+  }, [portfolio, analysisResult, riskAnalysisResult, cachedArticles]);
+
+  // Trigger preload when portfolio changes and has items
+  useEffect(() => {
+    if (portfolio.length > 0) {
+      // Wait a bit for stock data to load first
+      const timer = setTimeout(() => {
+        preloadAllTabs();
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else {
+      // Clear all data when portfolio is empty
+      setAnalysisResult(null);
+      setRiskAnalysisResult(null);
+      setCachedArticles([]);
+    }
+  }, [portfolio.length, preloadAllTabs]);
+
   // Clear analysis when portfolio changes significantly
   useEffect(() => {
     // Only clear if we have results and portfolio changed
@@ -113,10 +246,14 @@ export default function Home() {
         currentTickers.has(t),
       );
       if (!stillValid && portfolio.length > 0) {
-        // Don't auto-clear, just let user re-analyze
+        // Clear and re-preload
+        setAnalysisResult(null);
+        setRiskAnalysisResult(null);
+        setCachedArticles([]);
+        preloadAllTabs();
       }
     }
-  }, [portfolio, analysisResult]);
+  }, [portfolio, analysisResult, preloadAllTabs]);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -156,6 +293,7 @@ export default function Home() {
             setAnalysisResult={setAnalysisResult}
             onGoToNews={() => setActiveTab("news")}
             onBetSelect={handleBetSelect}
+            isPreloaded={analysisResult !== null}
           />
         )}
         {activeTab === "risks" && (
@@ -164,6 +302,7 @@ export default function Home() {
             stockInfo={stockInfo}
             hedges={analysisResult?.recommendations || []}
             onGoToHedges={() => setActiveTab("hedges")}
+            preloadedResult={riskAnalysisResult}
           />
         )}
         {activeTab === "news" && (
@@ -174,6 +313,7 @@ export default function Home() {
             onBetSelect={handleBetSelect}
             cachedArticles={cachedArticles}
             onArticlesUpdate={handleArticlesUpdate}
+            isPreloaded={cachedArticles.length > 0}
           />
         )}
         {activeTab === "greeks" && (

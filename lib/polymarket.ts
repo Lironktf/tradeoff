@@ -24,13 +24,14 @@ const GAMMA_API_BASE = "https://gamma-api.polymarket.com";
 export async function fetchActiveEvents(limit: number = 50): Promise<PolymarketEvent[]> {
   try {
     // Fetch from events endpoint - gives us proper event slugs
+    // Disable caching for large responses (>2MB) to avoid Next.js cache errors
     const response = await fetch(
       `${GAMMA_API_BASE}/events?closed=false&limit=${limit}&active=true`,
       {
         headers: {
           "Accept": "application/json",
         },
-        next: { revalidate: 60 },
+        cache: 'no-store', // Disable caching to avoid "items over 2MB" error
       }
     );
 

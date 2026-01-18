@@ -52,6 +52,7 @@ interface RiskViewProps {
   stockInfo: Record<string, StockInfo>;
   hedges?: HedgeRecommendation[];
   onGoToHedges?: () => void;
+  preloadedResult?: RiskAnalysisResult | null;
 }
 
 export function RiskView({
@@ -59,10 +60,11 @@ export function RiskView({
   stockInfo,
   hedges = [],
   onGoToHedges,
+  preloadedResult,
 }: RiskViewProps) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<RiskAnalysisResult | null>(null);
+  const [result, setResult] = useState<RiskAnalysisResult | null>(preloadedResult || null);
   const hasAutoAnalyzed = useRef(false);
 
   const handleAnalyze = async () => {
@@ -92,18 +94,27 @@ export function RiskView({
     }
   };
 
-  // Auto-analyze when entering tab with portfolio but no results
+  // Update result when preloaded result changes
+  useEffect(() => {
+    if (preloadedResult) {
+      setResult(preloadedResult);
+      hasAutoAnalyzed.current = true;
+    }
+  }, [preloadedResult]);
+
+  // Auto-analyze when entering tab with portfolio but no results (only if not preloaded)
   useEffect(() => {
     if (
       portfolio.length > 0 &&
       !result &&
       !isAnalyzing &&
-      !hasAutoAnalyzed.current
+      !hasAutoAnalyzed.current &&
+      !preloadedResult
     ) {
       hasAutoAnalyzed.current = true;
       handleAnalyze();
     }
-  }, [portfolio.length, result, isAnalyzing]);
+  }, [portfolio.length, result, isAnalyzing, preloadedResult]);
 
   // Reset when portfolio changes
   useEffect(() => {
