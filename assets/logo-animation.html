@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TradeOff Logo Animation</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      background: #0d1117;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      overflow: hidden;
+    }
+    
+    .container {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+    
+    /* Logo Icon */
+    .logo-icon {
+      width: 80px;
+      height: 80px;
+      position: relative;
+      opacity: 0;
+      transform: scale(0.5) translateX(-100px);
+      animation: logoEnter 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards;
+    }
+    
+    .logo-icon svg {
+      width: 100%;
+      height: 100%;
+    }
+    
+    .logo-icon svg path {
+      stroke-dasharray: 100;
+      stroke-dashoffset: 100;
+    }
+    
+    .logo-icon svg path:nth-child(1) {
+      animation: drawPath 0.8s ease-out 0.6s forwards;
+    }
+    .logo-icon svg path:nth-child(2) {
+      animation: drawPath 0.8s ease-out 0.8s forwards;
+    }
+    .logo-icon svg path:nth-child(3) {
+      animation: drawPath 0.8s ease-out 1.0s forwards;
+    }
+    
+    @keyframes drawPath {
+      to {
+        stroke-dashoffset: 0;
+      }
+    }
+    
+    /* Glow effect */
+    .logo-glow {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle, rgba(63, 185, 80, 0.3) 0%, transparent 70%);
+      filter: blur(20px);
+      opacity: 0;
+      animation: glowPulse 2s ease-in-out 1s infinite;
+    }
+    
+    /* Text */
+    .logo-text {
+      display: flex;
+      overflow: hidden;
+    }
+    
+    .letter {
+      font-size: 64px;
+      font-weight: 700;
+      color: white;
+      opacity: 0;
+      transform: translateY(100%);
+    }
+    
+    /* Individual letter animations with stagger */
+    .letter:nth-child(1) { animation: letterReveal 0.6s cubic-bezier(0.16, 1, 0.3, 1) 1.0s forwards; }
+    .letter:nth-child(2) { animation: letterReveal 0.6s cubic-bezier(0.16, 1, 0.3, 1) 1.1s forwards; }
+    .letter:nth-child(3) { animation: letterReveal 0.6s cubic-bezier(0.16, 1, 0.3, 1) 1.2s forwards; }
+    .letter:nth-child(4) { animation: letterReveal 0.6s cubic-bezier(0.16, 1, 0.3, 1) 1.3s forwards; }
+    .letter:nth-child(5) { animation: letterReveal 0.6s cubic-bezier(0.16, 1, 0.3, 1) 1.4s forwards; }
+    .letter:nth-child(6) { animation: letterReveal 0.6s cubic-bezier(0.16, 1, 0.3, 1) 1.5s forwards; }
+    .letter:nth-child(7) { animation: letterReveal 0.6s cubic-bezier(0.16, 1, 0.3, 1) 1.6s forwards; }
+    .letter:nth-child(8) { animation: letterReveal 0.6s cubic-bezier(0.16, 1, 0.3, 1) 1.7s forwards; }
+    
+    /* Green accent on 'O' */
+    .letter.accent {
+      color: #3fb950;
+    }
+    
+    /* Sliding line that reveals text */
+    .reveal-line {
+      position: absolute;
+      width: 4px;
+      height: 80px;
+      background: linear-gradient(180deg, transparent 0%, #3fb950 20%, #3fb950 80%, transparent 100%);
+      left: 104px;
+      opacity: 0;
+      animation: lineSlide 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.9s forwards;
+      box-shadow: 0 0 20px #3fb950, 0 0 40px rgba(63, 185, 80, 0.5);
+    }
+    
+    /* Particle effects */
+    .particles {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    
+    .particle {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      background: #3fb950;
+      opacity: 0;
+    }
+    
+    .particle:nth-child(1) { left: 45%; top: 40%; animation: particleBurst 1.5s ease-out 1.3s forwards; }
+    .particle:nth-child(2) { left: 50%; top: 45%; animation: particleBurst 1.5s ease-out 1.35s forwards; }
+    .particle:nth-child(3) { left: 48%; top: 55%; animation: particleBurst 1.5s ease-out 1.4s forwards; }
+    .particle:nth-child(4) { left: 52%; top: 48%; animation: particleBurst 1.5s ease-out 1.45s forwards; }
+    .particle:nth-child(5) { left: 46%; top: 52%; animation: particleBurst 1.5s ease-out 1.5s forwards; }
+    
+    /* Keyframes */
+    @keyframes logoEnter {
+      0% {
+        opacity: 0;
+        transform: scale(0.5) translateX(-100px);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1) translateX(0);
+      }
+    }
+    
+    @keyframes borderFade {
+      0% { opacity: 0; }
+      100% { opacity: 1; }
+    }
+    
+    @keyframes innerGrow {
+      0% { transform: translate(-50%, -50%) scale(0); }
+      100% { transform: translate(-50%, -50%) scale(1); }
+    }
+    
+    @keyframes glowPulse {
+      0%, 100% { opacity: 0.3; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(1.1); }
+    }
+    
+    @keyframes letterReveal {
+      0% {
+        opacity: 0;
+        transform: translateY(100%);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    @keyframes lineSlide {
+      0% {
+        opacity: 1;
+        left: 104px;
+      }
+      80% {
+        opacity: 1;
+      }
+      100% {
+        opacity: 0;
+        left: 550px;
+      }
+    }
+    
+    @keyframes particleBurst {
+      0% {
+        opacity: 1;
+        transform: scale(1) translate(0, 0);
+      }
+      100% {
+        opacity: 0;
+        transform: scale(0) translate(var(--tx, 50px), var(--ty, -50px));
+      }
+    }
+    
+    .particle:nth-child(1) { --tx: -80px; --ty: -60px; }
+    .particle:nth-child(2) { --tx: 100px; --ty: -40px; }
+    .particle:nth-child(3) { --tx: -60px; --ty: 80px; }
+    .particle:nth-child(4) { --tx: 90px; --ty: 70px; }
+    .particle:nth-child(5) { --tx: 40px; --ty: -90px; }
+    
+    /* Tagline */
+    .tagline {
+      position: absolute;
+      bottom: 35%;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #858687;
+      font-size: 18px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      opacity: 0;
+      animation: fadeIn 1s ease-out 2.2s forwards;
+    }
+    
+    @keyframes fadeIn {
+      0% { opacity: 0; transform: translateX(-50%) translateY(20px); }
+      100% { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+    
+    /* Replay button */
+    .replay-btn {
+      position: fixed;
+      bottom: 40px;
+      right: 40px;
+      background: transparent;
+      border: 2px solid #3fb950;
+      color: #3fb950;
+      padding: 12px 24px;
+      font-size: 14px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.3s ease;
+      opacity: 0;
+      animation: fadeIn 0.5s ease-out 3s forwards;
+    }
+    
+    .replay-btn:hover {
+      background: #3fb950;
+      color: #0d1117;
+    }
+  </style>
+</head>
+<body>
+  <div class="particles">
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+  </div>
+  
+  <div class="container">
+    <div class="logo-icon">
+      <div class="logo-glow"></div>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#3fb950" stroke-width="2">
+        <path d="M12 2L2 7l10 5 10-5-10-5z" />
+        <path d="M2 17l10 5 10-5" />
+        <path d="M2 12l10 5 10-5" />
+      </svg>
+    </div>
+    
+    <div class="reveal-line"></div>
+    
+    <div class="logo-text">
+      <span class="letter">T</span>
+      <span class="letter">r</span>
+      <span class="letter">a</span>
+      <span class="letter">d</span>
+      <span class="letter">e</span>
+      <span class="letter accent">O</span>
+      <span class="letter">f</span>
+      <span class="letter">f</span>
+    </div>
+  </div>
+  
+  <div class="tagline">Invest in the PolyMarket</div>
+  
+  <button class="replay-btn" onclick="location.reload()">Replay Animation</button>
+</body>
+</html>
