@@ -1,6 +1,8 @@
 # TradeOff
 
-> **Built for NexHacks 2026** | Powered by Polymarket, Groq & Wood Wide AI
+My own personal fork, find the worked in repo at https://github.com/pauligwe/tradeoff
+
+> **Built for NexHacks 2026**
 
 https://github.com/user-attachments/assets/416009f3-9cdd-49d1-841f-b715a6f0a7ef
 
